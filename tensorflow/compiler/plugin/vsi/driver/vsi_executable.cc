@@ -45,23 +45,44 @@ VsiExecutable::~VsiExecutable()
 }
 
 StatusOr<ExecutionOutput> VsiExecutable::ExecuteAsyncOnStream(
-      const ServiceExecutableRunOptions* run_options,
-      std::vector<ExecutionInput> arguments,
-      HloExecutionProfile* hlo_execution_profile){
+    const ServiceExecutableRunOptions* run_options,
+    std::vector<ExecutionInput> arguments,
+    HloExecutionProfile* hlo_execution_profile){
+        LOG(INFO) << "Execute " << module().name();
+
+        const HloComputation* computation = module().entry_computation();
+        LOG(INFO) << "computaion id = " << computation->unique_id();
+        LOG(INFO) << "HloComputation->num_parameters' size =  " << computation->num_parameters();
+        LOG(INFO) << "HloComputation->parent() = " <<computation->parent();
+        LOG(INFO) << "HloComputation->instruction_count() = "<< computation->instruction_count();
+
+        auto root_instr = computation->root_instruction();
+        LOG(INFO) << "root instrcution name = " << root_instr->name();
+        LOG(INFO) << "root instrcution id = " << root_instr->unique_id();
+        LOG(INFO) << "root instrcution operand_count = " << root_instr->operand_count();
+        LOG(INFO) << "root instrcution opcode = " << root_instr->opcode();
+        for( auto instr : root_instr->operands()){
+            LOG(INFO) << "=======================================================";
+            LOG(INFO) << "sub instrcution name = " << instr->name();
+            LOG(INFO) << "sub instrcution id = " << instr->unique_id();
+            LOG(INFO) << "sub instrcution operand_count = " << instr->operand_count();
+            LOG(INFO) << "sub instrcution opcode = " << instr->opcode();
+            LOG(INFO) << "=======================================================";
+        }
         LOG(FATAL)<<"not implement";
-      }
+    }
 
 StatusOr<std::vector<ScopedShapedBuffer>> VsiExecutable::ExecuteOnStreams(
-      absl::Span<const ServiceExecutableRunOptions> run_options,
-      absl::Span<const absl::Span<const ShapedBuffer* const>> arguments){
-
-      }
+    absl::Span<const ServiceExecutableRunOptions> run_options,
+    absl::Span<const absl::Span<const ShapedBuffer* const>> arguments){
+        LOG(FATAL)<<"not implement";
+    }
 
 Status VsiExecutable::PopulateExecutionProfile(
-      ExecutionProfile* execution_profile,
-      HloExecutionProfile* hlo_execution_profile, se::Stream* stream){
-
-      }
+    ExecutionProfile* execution_profile,
+    HloExecutionProfile* hlo_execution_profile, se::Stream* stream){
+        LOG(FATAL)<<"not implement";
+    }
 
 } // namespace vsiplugin
 } // namespace xla
