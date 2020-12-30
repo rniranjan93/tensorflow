@@ -30,6 +30,7 @@ limitations under the License.
 #include "tensorflow/compiler/xla/statusor.h"
 #include "tensorflow/compiler/xla/types.h"
 #include "tensorflow/compiler/xla/xla_data.pb.h"
+#include "tensorflow/compiler/plugin/vsi/driver/visitors/visitor_base.h"
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/types.h"
@@ -66,6 +67,8 @@ public:
         ExecutionProfile* execution_profile,
         HloExecutionProfile* hlo_execution_profile, se::Stream* stream) override;
 
+private:
+    std::unique_ptr<BaseVisitor> visitor_;
 };
     
 } // namespace vsiplugin

@@ -40,6 +40,7 @@ cc_library(
     hdrs = ["vsi_executable.h"],
     deps = [
         ":vsi_executor",
+        ":visitor_base",
         "//tensorflow/compiler/xla:literal",
         "//tensorflow/compiler/xla:shape_util",
         "//tensorflow/compiler/xla:status_macros",
@@ -78,7 +79,44 @@ cc_library(
     ],
     alwayslink = True,  # Registers itself with the MultiPlatformManager.
 )
-
+cc_library(
+    name = "visitor_base",
+    srcs = [
+        "visitors/visitor_base.cc",
+    ],
+    hdrs = ["visitors/visitor_base.h"],
+    deps = [
+        "//tensorflow/compiler/xla/service/cpu:runtime_single_threaded_matmul",
+        "//tensorflow/compiler/xla/service:dynamic_dimension_inference",
+        "//tensorflow/compiler/xla/service:hlo",
+        "//tensorflow/compiler/xla/service:hlo_evaluator",
+        "//tensorflow/compiler/xla/service:hlo_casting_utils",
+        "//tensorflow/compiler/xla/service:hlo_query",
+        "//tensorflow/compiler/xla/service:hlo_value",
+        "//tensorflow/compiler/xla/service:hlo_buffer",
+        "//tensorflow/compiler/xla/service:shape_inference",
+        "//tensorflow/compiler/xla/service:buffer_assignment",
+        "//tensorflow/compiler/xla:array2d",
+        "//tensorflow/compiler/xla:literal",
+        "//tensorflow/compiler/xla:literal_util",
+        "//tensorflow/compiler/xla:shape_util",
+        "//tensorflow/compiler/xla:statusor",
+        "//tensorflow/compiler/xla:types",
+        "//tensorflow/compiler/xla:util",
+        "//tensorflow/compiler/xla:window_util",
+        "//tensorflow/compiler/xla:xla_data_proto_cc",
+        "//tensorflow/core:lib",
+        "@com_google_absl//absl/algorithm:container",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/container:inlined_vector",
+        "@com_google_absl//absl/container:node_hash_map",
+        "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/meta:type_traits",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:optional",
+        "@com_google_absl//absl/types:span",
+    ],
+)
 cc_library(
     name = "vsi_plugin",
     deps = [

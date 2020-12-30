@@ -38,7 +38,10 @@ namespace vsiplugin{
 VsiExecutable::VsiExecutable(std::shared_ptr<HloModule> hlo_module) :
         Executable( std::move(hlo_module), 
                     /*hlo_profile_printer_data=*/nullptr,
-                    /*hlo_profile_index_map=*/nullptr){}
+                    /*hlo_profile_index_map=*/nullptr), 
+        visitor_(std::move(std::make_unique<BaseVisitor>())) {
+            visitor_->ResetVisitStates();
+        }
 
 VsiExecutable::~VsiExecutable()
 {
@@ -49,27 +52,44 @@ StatusOr<ExecutionOutput> VsiExecutable::ExecuteAsyncOnStream(
     std::vector<ExecutionInput> arguments,
     HloExecutionProfile* hlo_execution_profile){
         LOG(INFO) << "Execute " << module().name();
-
+        // Convert the ShapeTree to a ShapedBuffer. We do this so we can call
+        // TransferManager methods below.
+        // std::vector<ShapedBuffer> argument_buffers;
+        // argument_buffers.reserve(arguments.size());
+        // for (auto& argument : arguments) {
+        //     const ShapeTree<MaybeOwningDeviceMemory>& buffers = argument.Buffers();
+        //     argument_buffers.push_back(ShapedBuffer(buffers.shape(), buffers.shape(),
+        //                                             /*platform=*/nullptr,
+        //                                             /*device_ordinal=*/0));
+        //     auto in_it = buffers.begin();
+        //     auto out_it = argument_buffers.back().buffers().begin();
+        //     for (; in_it != buffers.end(); ++in_it, ++out_it) {
+        //     out_it->second = in_it->second.AsDeviceMemoryBase();
+        //     }
+        // }
         const HloComputation* computation = module().entry_computation();
-        LOG(INFO) << "computaion id = " << computation->unique_id();
-        LOG(INFO) << "HloComputation->num_parameters' size =  " << computation->num_parameters();
-        LOG(INFO) << "HloComputation->parent() = " <<computation->parent();
-        LOG(INFO) << "HloComputation->instruction_count() = "<< computation->instruction_count();
-
-        auto root_instr = computation->root_instruction();
-        LOG(INFO) << "root instrcution name = " << root_instr->name();
-        LOG(INFO) << "root instrcution id = " << root_instr->unique_id();
-        LOG(INFO) << "root instrcution operand_count = " << root_instr->operand_count();
-        LOG(INFO) << "root instrcution opcode = " << root_instr->opcode();
-        for( auto instr : root_instr->operands()){
-            LOG(INFO) << "=======================================================";
-            LOG(INFO) << "sub instrcution name = " << instr->name();
-            LOG(INFO) << "sub instrcution id = " << instr->unique_id();
-            LOG(INFO) << "sub instrcution operand_count = " << instr->operand_count();
-            LOG(INFO) << "sub instrcution opcode = " << instr->opcode();
-            LOG(INFO) << "=======================================================";
+        if (computation->num_parameters() != arguments.size()) {
+            return tensorflow::errors::Internal(
+            "Mismatch between argument count and graph parameter count.");
         }
-        LOG(FATAL)<<"not implement";
+
+        Literal result_literal = visitor_->evaluate(*computation);
+
+        se::Stream* stream = run_options->stream();
+        se::StreamExecutor* executor = stream->parent();
+        const se::Platform* platform = executor->platform();
+        TF_ASSIGN_OR_RETURN(TransferManager * transfer_manager,
+                    TransferManager::GetForPlatform(platform));
+        // Transform the result literal back into a ShapedBuffer.
+        TF_ASSIGN_OR_RETURN(ScopedShapedBuffer result_buffers,
+                      transfer_manager->AllocateScopedShapedBuffer(
+                          result_literal.shape(), run_options->allocator(),
+                          executor->device_ordinal()));
+
+        TF_RETURN_IF_ERROR(transfer_manager->TransferLiteralToDevice(
+        run_options->stream(), result_literal, result_buffers));
+        ExecutionOutput result(std::move(result_buffers));
+        return result;
     }
 
 StatusOr<std::vector<ScopedShapedBuffer>> VsiExecutable::ExecuteOnStreams(
