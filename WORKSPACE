@@ -150,3 +150,7 @@ load("//third_party/googleapis:repository_rules.bzl", "config_googleapis")
 
 config_googleapis()
 
+local_repository(
+    name = "TIM_VX",
+    path = "tensorflow/compiler/plugin/vsi/driver/TIM-VX",
+)

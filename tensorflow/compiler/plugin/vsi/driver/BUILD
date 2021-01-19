@@ -30,7 +30,7 @@ cc_library(
         "//tensorflow/core:stream_executor_headers_lib",
         "//tensorflow/stream_executor/host:host_stream",
         "//tensorflow/stream_executor/host:host_timer",
-        "//tensorflow/compiler/plugin/vsi/driver/TIM-VX:tim-vx_interface",
+        "@TIM_VX//:tim-vx_interface",
         "@com_google_absl//absl/types:span",
     ],
 )
