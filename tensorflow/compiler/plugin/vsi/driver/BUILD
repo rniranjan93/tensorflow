@@ -17,6 +17,45 @@ cc_library(
 )
 
 cc_library(
+    name = "vsi_compiler",
+    srcs = ["vsi_compiler.cc"],
+    hdrs = ["vsi_compiler.h"],
+    deps = [
+        ":vsi_executable",
+        ":vsi_platform_id",
+        "//tensorflow/compiler/xla:status",
+        "//tensorflow/compiler/xla:status_macros",
+        "//tensorflow/compiler/xla:statusor",
+        "//tensorflow/compiler/xla/service:algebraic_simplifier",
+        "//tensorflow/compiler/xla/service:cholesky_expander",
+        "//tensorflow/compiler/xla/service:compiler",
+        "//tensorflow/compiler/xla/service:computation_placer",
+        "//tensorflow/compiler/xla/service:custom_call_target_registry",
+        "//tensorflow/compiler/xla/service:dynamic_index_splitter",
+        "//tensorflow/compiler/xla/service:executable",
+        "//tensorflow/compiler/xla/service:flatten_call_graph",
+        "//tensorflow/compiler/xla/service:hlo",
+        "//tensorflow/compiler/xla/service:hlo_constant_folding",
+        "//tensorflow/compiler/xla/service:hlo_cost_analysis",
+        "//tensorflow/compiler/xla/service:hlo_cse",
+        "//tensorflow/compiler/xla/service:hlo_dce",
+        "//tensorflow/compiler/xla/service:hlo_module_config",
+        "//tensorflow/compiler/xla/service:hlo_pass",
+        "//tensorflow/compiler/xla/service:hlo_pass_pipeline",
+        "//tensorflow/compiler/xla/service:hlo_subcomputation_unification",
+        "//tensorflow/compiler/xla/service:layout_assignment",
+        "//tensorflow/compiler/xla/service:map_inliner",
+        "//tensorflow/compiler/xla/service:reshape_mover",
+        "//tensorflow/compiler/xla/service:triangular_solve_expander",
+        "//tensorflow/compiler/xla/service:while_loop_simplifier",
+        "//tensorflow/core:lib",
+        "//tensorflow/stream_executor",
+        "@com_google_absl//absl/memory",
+    ],
+    alwayslink = True,  # Contains compiler registration
+)
+
+cc_library(
     name = "vsi_executor",
     srcs = ["vsi_executor.cc"],
     hdrs = ["vsi_executor.h",
@@ -123,6 +162,7 @@ cc_library(
     deps = [
         ":vsi_executable",
         ":vsi_platform",
+        "vsi_compiler",
         "//tensorflow/core:stream_executor_no_cuda",
     ],
 )

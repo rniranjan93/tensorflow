@@ -93,7 +93,7 @@ PlatformUtil::GetSupportedPlatforms() {
     return NotFound("no platforms found");
   } else if (platforms.size() == 1) {
     platform = platforms[0];
-  } else if (platforms.size() == 2) {
+  } else {
     // for (int i = 0; i < 2; i++) {
     //   if (absl::AsciiStrToLower(platforms[i]->Name()) == kInterpreter &&
     //       absl::AsciiStrToLower(platforms[1 - i]->Name()) != kInterpreter) {
@@ -101,9 +101,11 @@ PlatformUtil::GetSupportedPlatforms() {
     //     break;
     //   }
     // }
-    for (int i = 0; i < 2; i++) {
-      if (absl::AsciiStrToLower(platforms[i]->Name()) == kInterpreter &&
-          absl::AsciiStrToLower(platforms[1 - i]->Name()) != kInterpreter) {
+    for (int i = 0; i < platforms.size(); i++){
+      LOG(INFO) << "platform ["<< i<< "] = "<< platforms[i]->Name();
+    }
+    for (int i = 0; i < platforms.size(); i++) {
+      if (absl::AsciiStrToLower(platforms[i]->Name()) == kInterpreter ) {
         platform = platforms[i];
         break;
       }
