@@ -70,9 +70,13 @@ namespace xla {
 } // namespace xla
 
 static bool InitModule() {
-  xla::Compiler::RegisterCompilerFactory(
-      xla::vsiplugin::kVsiPlatformId,
-      []() { return absl::make_unique<xla::vsiplugin::VsiCompiler>(); });
-  return true;
+    xla::Compiler::RegisterCompilerFactory(
+        xla::vsiplugin::kVsiPlatformId,
+        []() { return absl::make_unique<xla::vsiplugin::VsiCompiler>(); });
+
+    xla::ComputationPlacer::RegisterComputationPlacer(
+        xla::vsiplugin::kVsiPlatformId,
+        []() { return absl::make_unique<xla::ComputationPlacer>(); });
+    return true;
 }
 static bool module_initialized = InitModule();
