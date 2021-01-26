@@ -116,9 +116,26 @@ cc_library(
         ":vsi_executor",
         ":vsi_platform_id",
         "//tensorflow/core:stream_executor_headers_lib",
+        "@TIM_VX//:libtim-vx.so"
     ],
     alwayslink = True,  # Registers itself with the MultiPlatformManager.
 )
+
+cc_library(
+    name = "vsi_transfer_manager",
+    srcs = ["vsi_transfer_manager.cc"],
+    hdrs = ["vsi_transfer_manager.h"],
+    deps = [
+        "//tensorflow/compiler/xla/service:generic_transfer_manager",
+        "//tensorflow/compiler/xla/service:transfer_manager",
+        ":vsi_platform_id",
+        "//tensorflow/core:lib",
+        "@com_google_absl//absl/memory",
+    ],
+    alwayslink = True,  # Contains per-platform transfer manager registration
+)
+
+
 cc_library(
     name = "visitor_base",
     srcs = [
@@ -163,6 +180,7 @@ cc_library(
         ":vsi_executable",
         ":vsi_platform",
         "vsi_compiler",
+        "vsi_transfer_manager",
         "//tensorflow/core:stream_executor_no_cuda",
     ],
 )
