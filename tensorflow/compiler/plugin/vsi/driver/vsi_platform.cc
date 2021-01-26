@@ -28,10 +28,14 @@ limitations under the License.
 #include "tensorflow/stream_executor/multi_platform_manager.h"
 #include "tensorflow/stream_executor/platform.h"
 
+#include "tim/vx/context.h"
+
 namespace xla{
 namespace vsiplugin{
 
-VsiPlatform::VsiPlatform() {}
+VsiPlatform::VsiPlatform() {
+  kVsiContext = tim::vx::Context::Create();
+}
 
 VsiPlatform::~VsiPlatform() {}
 
@@ -77,11 +81,11 @@ port::StatusOr<std::unique_ptr<se::StreamExecutor>>
 VsiPlatform::GetUncachedExecutor(
     const se::StreamExecutorConfig& config) {
 
-LOG(FATAL) << "not yet implemented: register executor trace listener";
+// LOG(FATAL) << "not yet implemented: register executor trace listener";
 
 // TODO: open it when to finish implement of VsiExecutor
   auto executor = absl::make_unique<se::StreamExecutor>(
-      this, absl::make_unique<VsiExecutor>(config.ordinal, config.plugin_config),
+      this, absl::make_unique<VsiExecutor>(kVsiContext, config.ordinal, config.plugin_config),
       config.ordinal);
   auto init_status = executor->Init(config.device_options);
   if (!init_status.ok()) {

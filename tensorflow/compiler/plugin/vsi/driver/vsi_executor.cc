@@ -22,8 +22,10 @@ limitations under the License.
 namespace xla{
 namespace vsiplugin{
 
-VsiExecutor::VsiExecutor(const int device_ordinal, se::PluginConfig pluginConfig)
- : ordinal_(device_ordinal), plugConfig_(pluginConfig) {}
+VsiExecutor::VsiExecutor(std::shared_ptr<tim::vx::Context>vsiCtx, const int device_ordinal, se::PluginConfig pluginConfig)
+ : kVsiContext(vsiCtx), ordinal_(device_ordinal), plugConfig_(pluginConfig) {
+     kVsiGraphContainer[ordinal_] = kVsiContext->CreateGraph();
+ }
 
 VsiExecutor::~VsiExecutor() {}
 
@@ -168,7 +170,15 @@ port::Status VsiExecutor::SetDeviceSharedMemoryConfig(
 }
 port::StatusOr<std::unique_ptr<se::DeviceDescription>>
     VsiExecutor::CreateDeviceDescription() const {
-        return port::InternalError("Failed to create device description.");
+
+        se::internal::DeviceDescriptionBuilder builder;
+
+        builder.set_device_address_bits(64);
+
+        builder.set_name("vsi-npu");
+        builder.set_device_memory_size(static_cast<uint64>(4) * 1024 * 1024 * 1024);
+
+        return builder.Build();
     }
 
     std::unique_ptr<se::internal::EventInterface> VsiExecutor::CreateEventImplementation(){

@@ -16,11 +16,15 @@ limitations under the License.
 #ifndef TENSORFLOW_COMPILER_PLUGIN_VSI_DRIVER_VSI_EXECUTOR_H_
 #define TENSORFLOW_COMPILER_PLUGIN_VSI_DRIVER_VSI_EXECUTOR_H_
 
+#include <unordered_map>
+
 #include "tensorflow/stream_executor/stream_executor.h" 
 #include "tensorflow/stream_executor/stream_executor_internal.h"
 #include "tensorflow/stream_executor/event.h"
 
 #include "tensorflow/compiler/plugin/vsi/driver/vsi_utils.h"
+#include "tim/vx/context.h"
+#include "tim/vx/graph.h"
 
 namespace se = stream_executor;
 
@@ -33,13 +37,16 @@ using Timer = ::se::Timer;
 
 class VsiExecutor : public se::internal::StreamExecutorInterface {
 public:
-    explicit VsiExecutor(const int device_ordinal, se::PluginConfig pluginConfig);
+    explicit VsiExecutor(std::shared_ptr<tim::vx::Context>vsiCtx, const int device_ordinal, se::PluginConfig pluginConfig);
     ~VsiExecutor();
 
     se::internal::StreamExecutorInterface *GetUnderlyingExecutor() override { return this; }
     port::Status Init(int device_ordinal,
                             se::DeviceOptions device_options) override {
-        return port::UnimplementedError("Not Implemented");
+        if(kVsiGraphContainer.find(device_ordinal) == kVsiGraphContainer.end()){
+            kVsiGraphContainer[device_ordinal] = kVsiContext->CreateGraph();
+        }
+        return port::Status::OK();
     }
 
     port::Status GetKernel(const se::MultiKernelLoaderSpec &spec,
@@ -158,7 +165,9 @@ public:
 private:
     int ordinal_;
     se::PluginConfig plugConfig_;
-    SE_DISALLOW_COPY_AND_ASSIGN(VsiExecutor);  
+    std::shared_ptr<tim::vx::Context> kVsiContext;
+    std::unordered_map<int, std::shared_ptr<tim::vx::Graph>> kVsiGraphContainer;
+    SE_DISALLOW_COPY_AND_ASSIGN(VsiExecutor);
 };
 
 } // namespace vsiplugin

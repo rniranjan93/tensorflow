@@ -28,7 +28,7 @@ limitations under the License.
 #include "tensorflow/stream_executor/stream_executor.h"
 #include "tensorflow/stream_executor/trace_listener.h"
 
-
+#include "tim/vx/context.h"
 
 namespace xla{
 namespace vsiplugin{
@@ -73,6 +73,8 @@ class VsiPlatform : public se::Platform{
 
   // Cache of created StreamExecutors.
   se::ExecutorCache executor_cache_;
+
+  std::shared_ptr<tim::vx::Context> kVsiContext;
 
   SE_DISALLOW_COPY_AND_ASSIGN(VsiPlatform);
 };
