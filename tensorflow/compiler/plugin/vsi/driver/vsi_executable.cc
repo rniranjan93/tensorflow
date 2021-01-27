@@ -35,11 +35,13 @@ limitations under the License.
 namespace xla{
 namespace vsiplugin{
 
-VsiExecutable::VsiExecutable(std::shared_ptr<HloModule> hlo_module) :
-        Executable( std::move(hlo_module), 
+VsiExecutable::VsiExecutable(std::shared_ptr<HloModule> hlo_module,
+ VsiPlatform* platform, VsiExecutor* executor) :
+        Executable( std::move(hlo_module),
                     /*hlo_profile_printer_data=*/nullptr,
-                    /*hlo_profile_index_map=*/nullptr), 
-        visitor_(std::move(std::make_unique<BaseVisitor>())) {
+                    /*hlo_profile_index_map=*/nullptr),
+        visitor_(std::move(std::make_unique<BaseVisitor>(platform, executor))),
+        platform_(platform), executor_(executor_) {
             visitor_->ResetVisitStates();
         }
 
@@ -73,8 +75,8 @@ StatusOr<ExecutionOutput> VsiExecutable::ExecuteAsyncOnStream(
             "Mismatch between argument count and graph parameter count.");
         }
 
-        Literal result_literal = visitor_->evaluate(*computation);
-
+        Literal result_literal;
+        se::DeviceMemoryBase  result_dev = visitor_->evaluate(*computation);
         se::Stream* stream = run_options->stream();
         se::StreamExecutor* executor = stream->parent();
         const se::Platform* platform = executor->platform();

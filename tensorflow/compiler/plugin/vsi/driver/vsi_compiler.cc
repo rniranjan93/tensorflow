@@ -62,7 +62,7 @@ StatusOr<std::unique_ptr<Executable>> VsiCompiler::RunBackend(
         // Create executable from only the Hlo module.
         std::unique_ptr<Executable> executable =
             absl::make_unique<vsiplugin::VsiExecutable>(
-                std::move(hlo_module));
+                std::move(hlo_module), device_allocator->platform(), stream_exec->implementation());
 
         return std::move(executable);
     }
@@ -99,7 +99,8 @@ VsiCompiler::CompileAheadOfTime(std::unique_ptr<HloModuleGroup> module_group,
                     const AotCompilationOptions& aot_options) {}
 
 HloCostAnalysis::ShapeSizeFunction VsiCompiler::ShapeSizeBytesFunction() const {}
-se::Platform::Id VsiCompiler::PlatformId() const {}
+
+se::Platform::Id VsiCompiler::PlatformId() const { return xla::vsiplugin::kVsiPlatformId; }
 
 } // namespace vsiplugin
 } // namespace xla

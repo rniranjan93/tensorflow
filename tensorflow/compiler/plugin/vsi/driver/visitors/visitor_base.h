@@ -22,6 +22,8 @@ limitations under the License.
 #include "tensorflow/compiler/xla/service/dfs_hlo_visitor.h"
 #include "tensorflow/compiler/xla/service/hlo_evaluator.h"
 #include "tensorflow/compiler/xla/service/hlo_instruction.h"
+#include "tensorflow/compiler/plugin/vsi/driver/vsi_platform.h"
+#include "tensorflow/compiler/plugin/vsi/driver/vsi_executor.h"
 
 
 namespace xla {
@@ -35,15 +37,16 @@ namespace vsiplugin {
  */
 class BaseVisitor : public DfsHloVisitor {
  public:
-  BaseVisitor() {};
+  BaseVisitor(VsiPlatform* platform, VsiExecutor* executor) :
+   platform_(platform), executor_(executor) {};
 
   virtual const Shape& GetOutputShape(HloInstruction*) const;
 
-    Literal evaluate(const HloComputation& computation
-        /*absl::Span<const Literal* const> arg_literals*/);
+    Literal evaluate(const HloComputation& computation,
+        absl::Span<const Literal* const> arg_literals);
     
-    se::DeviceMemoryBase evaluate(const HloComputation& computation,
-        absl::Span<const se::DeviceMemoryBase* const> arg_literals);
+    se::DeviceMemoryBase evaluate(const HloComputation& computation
+        /*absl::Span<const se::DeviceMemoryBase* const> arg_literals*/);
 
     Status HandleHloOp(HloInstruction* hlo);
 
@@ -169,6 +172,9 @@ private:
     // TODO: it is better the Literal value was repalced with device memory
     //       handle.
     std::unordered_map<const HloInstruction *, Literal> evaluated_;
+
+    std::shared_ptr<VsiPlatform> platform_;
+    std::shared_ptr<VsiExecutor> executor_;
 };
 
 }  // namespace vsiplugin

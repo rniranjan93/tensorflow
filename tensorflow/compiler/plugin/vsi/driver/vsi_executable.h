@@ -42,7 +42,8 @@ namespace vsiplugin{
 
 class VsiExecutable : public Executable  {
 public:
-    explicit VsiExecutable( std::shared_ptr<HloModule> hlo_module);
+    explicit VsiExecutable( std::shared_ptr<HloModule> hlo_module,
+    VsiPlatform* platform, VsiExecutor* executor);
 
     ~VsiExecutable();
 
@@ -69,6 +70,8 @@ public:
 
 private:
     std::unique_ptr<BaseVisitor> visitor_;
+    std::shared_ptr<VsiPlatform> platform_;
+    std::shared_ptr<VsiExecutor> executor_;
 };
     
 } // namespace vsiplugin
