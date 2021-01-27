@@ -44,27 +44,62 @@ limitations under the License.
 #include "tensorflow/compiler/plugin/vsi/driver/vsi_executable.h"
 
 namespace xla {
-    namespace vsiplugin {
+namespace vsiplugin {
 
-    StatusOr<std::unique_ptr<HloModule>> VsiCompiler::RunHloPasses(
-        std::unique_ptr<HloModule> hlo_module, se::StreamExecutor* stream_exec,
-        se::DeviceMemoryAllocator* device_allocator) {}
+StatusOr<std::unique_ptr<HloModule>> VsiCompiler::RunHloPasses(
+    std::unique_ptr<HloModule> hlo_module, se::StreamExecutor* stream_exec,
+    se::DeviceMemoryAllocator* device_allocator) {
+        return hlo_module;
+    }
 
-    StatusOr<std::unique_ptr<Executable>> VsiCompiler::RunBackend(
-        std::unique_ptr<HloModule> hlo_module, se::StreamExecutor* stream_exec,
-        se::DeviceMemoryAllocator* device_allocator) {}
+StatusOr<std::unique_ptr<Executable>> VsiCompiler::RunBackend(
+    std::unique_ptr<HloModule> hlo_module, se::StreamExecutor* stream_exec,
+    se::DeviceMemoryAllocator* device_allocator) {
+        TF_RET_CHECK(stream_exec != nullptr);
 
-    StatusOr<std::vector<std::unique_ptr<Executable>>> VsiCompiler::Compile(
-        std::unique_ptr<HloModuleGroup> module_group,
-        std::vector<std::vector<se::StreamExecutor*>> stream_exec,
-        se::DeviceMemoryAllocator* device_allocator) {}
+        VLOG(1) << "Run backend " << hlo_module->name();
 
-    StatusOr<std::vector<std::unique_ptr<AotCompilationResult>>>
-    VsiCompiler::CompileAheadOfTime(std::unique_ptr<HloModuleGroup> module_group,
-                        const AotCompilationOptions& aot_options) {}
+        // Create executable from only the Hlo module.
+        std::unique_ptr<Executable> executable =
+            absl::make_unique<vsiplugin::VsiExecutable>(
+                std::move(hlo_module));
 
-    HloCostAnalysis::ShapeSizeFunction VsiCompiler::ShapeSizeBytesFunction() const {}
-    se::Platform::Id VsiCompiler::PlatformId() const {}
+        return std::move(executable);
+    }
+
+StatusOr<std::vector<std::unique_ptr<Executable>>> VsiCompiler::Compile(
+    std::unique_ptr<HloModuleGroup> module_group,
+    std::vector<std::vector<se::StreamExecutor*>> stream_exec,
+    se::DeviceMemoryAllocator* device_allocator) {
+        if (module_group->empty()) {
+            return std::vector<std::unique_ptr<Executable>>();
+        }
+        if (module_group->size() > 1) {
+            return tensorflow::errors::Unimplemented(
+                "Compilation of multiple HLO modules is not supported on Interpreter.");
+        }
+        if (stream_exec.size() != 1 || stream_exec[0].size() != 1) {
+            return tensorflow::errors::Unimplemented(
+                "Unexpected number of StreamExecutor's.");
+        }
+        auto hlo_modules = module_group->ConsumeModules();
+        TF_ASSIGN_OR_RETURN(auto module,
+                            RunHloPasses(std::move(hlo_modules[0]), stream_exec[0][0],
+                                        device_allocator));
+        TF_ASSIGN_OR_RETURN(
+            auto executable,
+            RunBackend(std::move(module), stream_exec[0][0], device_allocator));
+        std::vector<std::unique_ptr<Executable>> ret;
+        ret.push_back(std::move(executable));
+        return std::move(ret);
+    }
+
+StatusOr<std::vector<std::unique_ptr<AotCompilationResult>>>
+VsiCompiler::CompileAheadOfTime(std::unique_ptr<HloModuleGroup> module_group,
+                    const AotCompilationOptions& aot_options) {}
+
+HloCostAnalysis::ShapeSizeFunction VsiCompiler::ShapeSizeBytesFunction() const {}
+se::Platform::Id VsiCompiler::PlatformId() const {}
 
 } // namespace vsiplugin
 } // namespace xla
