@@ -17,6 +17,8 @@ limitations under the License.
 
 #include <memory.h>
 
+#include "tensorflow/stream_executor/host/host_stream.h"
+#include "tensorflow/stream_executor/host/host_timer.h"
 #include "tensorflow/compiler/plugin/vsi/driver/vsi_utils.h"
 
 namespace xla{
@@ -29,9 +31,15 @@ VsiExecutor::VsiExecutor(std::shared_ptr<tim::vx::Context>vsiCtx, const int devi
 
 VsiExecutor::~VsiExecutor() {}
 
+//TODO: temprarily use 1d tensor
 se::DeviceMemoryBase VsiExecutor::Allocate(uint64 size, int64 memory_space){
-    LOG(FATAL) << "Not Implemented";
-    return se::DeviceMemoryBase();
+    tim::vx::ShapeType input_shape({size});
+    tim::vx::Quantization input_quant(tim::vx::QuantType::ASYMMETRIC, 1.0f,
+                                        0);
+    tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
+                                    tim::vx::TensorAttribute::VARIABLE, input_quant);
+    auto input = kVsiGraphContainer[ordinal_]->CreateTensor(input_spec);
+    return se::DeviceMemoryBase(input.get(), size);
 }
 
 void *VsiExecutor::GetSubBuffer(se::DeviceMemoryBase *parent, uint64 offset, uint64 size) {
@@ -104,8 +112,16 @@ bool VsiExecutor::MemcpyDeviceToDevice(se::Stream *stream, se::DeviceMemoryBase 
                             uint64 size){
     LOG(FATAL) << "Not Implemented";
 }
+
+se::host::HostStream* VsiExecutor::AsVsiStream(se::Stream* stream) {
+    DCHECK(stream != nullptr);
+    return dynamic_cast<se::host::HostStream*>(stream->implementation());
+}
+
 bool VsiExecutor::HostCallback(se::Stream *stream, std::function<void()> callback){
-    LOG(FATAL) << "Not Implemented";
+    //TENSORFLOW_TRACEPOINT();
+    AsVsiStream(stream)->EnqueueTask(callback);
+    return true;
 }
 bool VsiExecutor::HostCallback(se::Stream *stream,
                     std::function<port::Status()> callback){
@@ -128,25 +144,30 @@ se::Event::Status VsiExecutor::PollForEventStatus(se::Event *event){
 }
 
 bool VsiExecutor::AllocateStream(se::Stream *stream) {
-    LOG(FATAL) << "Not Implemented";
+     return true;
 }
 void VsiExecutor::DeallocateStream(se::Stream *stream) {
-    LOG(FATAL) << "Not Implemented";
+    return ;
 }
 bool VsiExecutor::CreateStreamDependency(se::Stream *dependent, se::Stream *other) {
-    LOG(FATAL) << "Not Implemented";
+    AsVsiStream(dependent)->EnqueueTask(
+    [other]() { auto ok = other->BlockHostUntilDone(); });
+    AsVsiStream(dependent)->BlockUntilDone();
+    return true;
 }
 bool VsiExecutor::AllocateTimer(Timer *timer) {
-    LOG(FATAL) << "Not Implemented";
+    return true;
 }
 void VsiExecutor::DeallocateTimer(Timer *timer) {
-    LOG(FATAL) << "Not Implemented";
+    return;
 }
 bool VsiExecutor::StartTimer(se::Stream *stream, Timer *timer) {
-    LOG(FATAL) << "Not Implemented";
+    dynamic_cast<se::host::HostTimer*>(timer->implementation())->Start(stream);
+    return true;
 }
 bool VsiExecutor::StopTimer(se::Stream *stream, Timer *timer) {
-    LOG(FATAL) << "Not Implemented";
+    dynamic_cast<se::host::HostTimer*>(timer->implementation())->Stop(stream);
+    return true;
 }
 
 port::Status VsiExecutor::BlockHostUntilDone(se::Stream *stream){
@@ -181,22 +202,22 @@ port::StatusOr<std::unique_ptr<se::DeviceDescription>>
         return builder.Build();
     }
 
-    std::unique_ptr<se::internal::EventInterface> VsiExecutor::CreateEventImplementation(){
-        LOG(FATAL) << "Not Implemented";
-        return nullptr;
-    }
-    std::unique_ptr<se::internal::KernelInterface> VsiExecutor::CreateKernelImplementation(){
-        LOG(FATAL) << "Not Implemented";
-        return nullptr;
-    }
-    std::unique_ptr<se::internal::StreamInterface> VsiExecutor::GetStreamImplementation(){
-        LOG(FATAL) << "Not Implemented";
-        return nullptr;
-    }
-    std::unique_ptr<se::internal::TimerInterface> VsiExecutor::GetTimerImplementation(){
-        LOG(FATAL) << "Not Implemented";
-        return nullptr;
-    }
+std::unique_ptr<se::internal::EventInterface> VsiExecutor::CreateEventImplementation(){
+    LOG(FATAL) << "Not Implemented";
+    return nullptr;
+}
+std::unique_ptr<se::internal::KernelInterface> VsiExecutor::CreateKernelImplementation(){
+    LOG(FATAL) << "Not Implemented";
+    return nullptr;
+}
+std::unique_ptr<se::internal::StreamInterface> VsiExecutor::GetStreamImplementation(){
+    return std::unique_ptr<se::internal::StreamInterface>(
+        new se::host::HostStream(0));
+}
+std::unique_ptr<se::internal::TimerInterface> VsiExecutor::GetTimerImplementation(){
+    return std::unique_ptr<se::internal::TimerInterface>(
+        new se::host::HostTimer());
+}
  
 } // namespace vsiplugin
 } // namespace xla

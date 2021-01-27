@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "tensorflow/stream_executor/stream_executor.h" 
 #include "tensorflow/stream_executor/stream_executor_internal.h"
+#include "tensorflow/stream_executor/host/host_stream.h"
 #include "tensorflow/stream_executor/event.h"
 
 #include "tensorflow/compiler/plugin/vsi/driver/vsi_utils.h"
@@ -115,6 +116,7 @@ public:
     bool MemcpyDeviceToDevice(se::Stream *stream, se::DeviceMemoryBase *gpu_dst,
                               const se::DeviceMemoryBase &gpu_src,
                               uint64 size) override;
+    se::host::HostStream* AsVsiStream(se::Stream* stream);
     bool HostCallback(se::Stream *stream, std::function<void()> callback);
     bool HostCallback(se::Stream *stream,
                       std::function<port::Status()> callback) override;
