@@ -23,6 +23,7 @@ cc_library(
     deps = [
         ":vsi_executable",
         ":vsi_platform_id",
+        "vsi_platform",
         "//tensorflow/compiler/xla:status",
         "//tensorflow/compiler/xla:status_macros",
         "//tensorflow/compiler/xla:statusor",
@@ -103,6 +104,7 @@ cc_library(
         "//tensorflow/core/platform:types",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/types:span",
+        "@TIM_VX//:libtim-vx.so"
     ],
 )
 
@@ -172,6 +174,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
+        "@TIM_VX//:libtim-vx.so"
     ],
 )
 cc_library(

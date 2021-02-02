@@ -34,7 +34,8 @@ limitations under the License.
 #include "tensorflow/core/platform/macros.h"
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/types.h"
-
+#include "tim/vx/context.h"
+#include "tim/vx/graph.h"
 namespace se = stream_executor;
 
 namespace xla{
@@ -43,7 +44,7 @@ namespace vsiplugin{
 class VsiExecutable : public Executable  {
 public:
     explicit VsiExecutable( std::shared_ptr<HloModule> hlo_module,
-    VsiPlatform* platform, VsiExecutor* executor);
+    std::shared_ptr<tim::vx::Context> context, std::shared_ptr<tim::vx::Graph> graph);
 
     ~VsiExecutable();
 
@@ -70,8 +71,8 @@ public:
 
 private:
     std::unique_ptr<BaseVisitor> visitor_;
-    std::shared_ptr<VsiPlatform> platform_;
-    std::shared_ptr<VsiExecutor> executor_;
+    std::shared_ptr<tim::vx::Context> kVsiContext_;
+    std::shared_ptr<tim::vx::Graph> kVsiGraph_;
 };
     
 } // namespace vsiplugin

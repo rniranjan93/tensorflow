@@ -22,8 +22,8 @@ limitations under the License.
 #include "tensorflow/compiler/xla/service/dfs_hlo_visitor.h"
 #include "tensorflow/compiler/xla/service/hlo_evaluator.h"
 #include "tensorflow/compiler/xla/service/hlo_instruction.h"
-#include "tensorflow/compiler/plugin/vsi/driver/vsi_platform.h"
-#include "tensorflow/compiler/plugin/vsi/driver/vsi_executor.h"
+#include "tim/vx/context.h"
+#include "tim/vx/graph.h"
 
 
 namespace xla {
@@ -37,8 +37,8 @@ namespace vsiplugin {
  */
 class BaseVisitor : public DfsHloVisitor {
  public:
-  BaseVisitor(VsiPlatform* platform, VsiExecutor* executor) :
-   platform_(platform), executor_(executor) {};
+  BaseVisitor(std::shared_ptr<tim::vx::Context> context, std::shared_ptr<tim::vx::Graph> graph) :
+   context_(context), graph_(graph) {};
 
   virtual const Shape& GetOutputShape(HloInstruction*) const;
 
@@ -173,8 +173,8 @@ private:
     //       handle.
     std::unordered_map<const HloInstruction *, Literal> evaluated_;
 
-    std::shared_ptr<VsiPlatform> platform_;
-    std::shared_ptr<VsiExecutor> executor_;
+    std::shared_ptr<tim::vx::Context> context_;
+    std::shared_ptr<tim::vx::Graph> graph_;
 };
 
 }  // namespace vsiplugin

@@ -40,8 +40,10 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/types.h"
 
+#include "tensorflow/compiler/plugin/vsi/driver/vsi_platform.h"
 #include "tensorflow/compiler/plugin/vsi/driver/vsi_platform_id.h"
 #include "tensorflow/compiler/plugin/vsi/driver/vsi_executable.h"
+#include "tensorflow/compiler/plugin/vsi/driver/vsi_executor.h"
 
 namespace xla {
 namespace vsiplugin {
@@ -58,11 +60,14 @@ StatusOr<std::unique_ptr<Executable>> VsiCompiler::RunBackend(
         TF_RET_CHECK(stream_exec != nullptr);
 
         VLOG(1) << "Run backend " << hlo_module->name();
-
+        LOG(INFO) <<"Run backend " << hlo_module->name();
+        LOG(INFO) << "platform name = "<<device_allocator->platform()->Name();
         // Create executable from only the Hlo module.
         std::unique_ptr<Executable> executable =
             absl::make_unique<vsiplugin::VsiExecutable>(
-                std::move(hlo_module), device_allocator->platform(), stream_exec->implementation());
+                std::move(hlo_module),
+                dynamic_cast<VsiExecutor*>(stream_exec->implementation())->getContext(),
+                dynamic_cast<VsiExecutor*>(stream_exec->implementation())->getGraph(stream_exec->device_ordinal()));
 
         return std::move(executable);
     }

@@ -31,7 +31,7 @@ limitations under the License.
 #include "tensorflow/compiler/xla/service/hlo_pass_fix.h"
 #include "tensorflow/compiler/xla/service/hlo_pass_pipeline.h"
 #include "tensorflow/compiler/xla/service/hlo_subcomputation_unification.h"
-//#include "tensorflow/compiler/xla/service/interpreter/executable.h"
+#include "tensorflow/compiler/xla/service/interpreter/executable.h"
 #include "tensorflow/compiler/xla/service/layout_assignment.h"
 #include "tensorflow/compiler/xla/service/map_inliner.h"
 #include "tensorflow/compiler/xla/service/reshape_mover.h"
@@ -46,7 +46,7 @@ limitations under the License.
 namespace xla {
 namespace interpreter {
 
-#define VSI_EXECUTABLE 1
+#define VSI_EXECUTABLE 0
 namespace {
 
 // Handles custom_call ops during evaluation by routing them through the global

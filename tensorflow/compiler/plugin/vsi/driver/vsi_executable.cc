@@ -36,12 +36,12 @@ namespace xla{
 namespace vsiplugin{
 
 VsiExecutable::VsiExecutable(std::shared_ptr<HloModule> hlo_module,
- VsiPlatform* platform, VsiExecutor* executor) :
+ std::shared_ptr<tim::vx::Context> context, std::shared_ptr<tim::vx::Graph> graph) :
         Executable( std::move(hlo_module),
                     /*hlo_profile_printer_data=*/nullptr,
                     /*hlo_profile_index_map=*/nullptr),
-        visitor_(std::move(std::make_unique<BaseVisitor>(platform, executor))),
-        platform_(platform), executor_(executor_) {
+        visitor_(std::move(std::make_unique<BaseVisitor>(context, graph))), 
+        kVsiContext_(context), kVsiGraph_(graph) {
             visitor_->ResetVisitStates();
         }
 
