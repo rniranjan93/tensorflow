@@ -41,6 +41,13 @@ public:
     explicit VsiExecutor(std::shared_ptr<tim::vx::Context>vsiCtx, const int device_ordinal, se::PluginConfig pluginConfig);
     ~VsiExecutor();
 
+    std::shared_ptr<tim::vx::Graph> getGraph(int ordinal) {
+        if(kVsiGraphContainer.find(ordinal) != kVsiGraphContainer.end())
+            return kVsiGraphContainer[ordinal];
+        return nullptr;
+    }
+    std::shared_ptr<tim::vx::Context> getContext() { return kVsiContext; }
+
     se::internal::StreamExecutorInterface *GetUnderlyingExecutor() override { return this; }
     port::Status Init(int device_ordinal,
                             se::DeviceOptions device_options) override {

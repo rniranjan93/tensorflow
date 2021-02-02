@@ -47,6 +47,8 @@ class VsiPlatform : public se::Platform{
 
   const std::string& Name() const override;
 
+  std::shared_ptr<tim::vx::Context> getContext() { return kVsiContext;}
+  
   port::StatusOr<std::unique_ptr<se::DeviceDescription>> DescriptionForDevice(
       int ordinal) const override;
 
