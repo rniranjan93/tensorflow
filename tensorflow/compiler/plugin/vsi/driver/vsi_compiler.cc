@@ -60,8 +60,6 @@ StatusOr<std::unique_ptr<Executable>> VsiCompiler::RunBackend(
         TF_RET_CHECK(stream_exec != nullptr);
 
         VLOG(1) << "Run backend " << hlo_module->name();
-        LOG(INFO) <<"Run backend " << hlo_module->name();
-        LOG(INFO) << "platform name = "<<device_allocator->platform()->Name();
         // Create executable from only the Hlo module.
         std::unique_ptr<Executable> executable =
             absl::make_unique<vsiplugin::VsiExecutable>(

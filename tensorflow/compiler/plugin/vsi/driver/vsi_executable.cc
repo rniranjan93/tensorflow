@@ -75,8 +75,7 @@ StatusOr<ExecutionOutput> VsiExecutable::ExecuteAsyncOnStream(
             "Mismatch between argument count and graph parameter count.");
         }
 
-        Literal result_literal;
-        se::DeviceMemoryBase  result_dev = visitor_->evaluate(*computation);
+        Literal result_literal = visitor_->evaluate(*computation);
         se::Stream* stream = run_options->stream();
         se::StreamExecutor* executor = stream->parent();
         const se::Platform* platform = executor->platform();

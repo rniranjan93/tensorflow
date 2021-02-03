@@ -40,14 +40,14 @@ using tensorflow::str_util::StartsWith;
 namespace xla {
 namespace vsiplugin {
 
-Literal BaseVisitor::evaluate(const HloComputation& computation,
-    absl::Span<const Literal* const> arg_literals){
+Literal BaseVisitor::evaluate(const HloComputation& computation
+    /*absl::Span<const Literal* const> arg_literals*/){
     computation.Accept(this);
     return GetEvaluatedLiteralFor(computation.root_instruction()).Clone();
 }
 
-se::DeviceMemoryBase BaseVisitor::evaluate(const HloComputation& computation
-    /*absl::Span<const se::DeviceMemoryBase* const> arg_literals*/){
+se::DeviceMemoryBase BaseVisitor::evaluate(const HloComputation& computation,
+    absl::Span<const se::DeviceMemoryBase* const> arg_literals){
     computation.Accept(this);
     auto result_lieral = GetEvaluatedLiteralFor(computation.root_instruction()).Clone();
     

@@ -176,6 +176,7 @@ private:
     se::PluginConfig plugConfig_;
     std::shared_ptr<tim::vx::Context> kVsiContext;
     std::unordered_map<int, std::shared_ptr<tim::vx::Graph>> kVsiGraphContainer;
+    std::vector<std::shared_ptr<tim::vx::Tensor>> kVsiTensorContainer;
     SE_DISALLOW_COPY_AND_ASSIGN(VsiExecutor);
 };
 

@@ -20,6 +20,7 @@ limitations under the License.
 #include "tensorflow/stream_executor/host/host_stream.h"
 #include "tensorflow/stream_executor/host/host_timer.h"
 #include "tensorflow/compiler/plugin/vsi/driver/vsi_utils.h"
+#include "tim/vx/tensor.h"
 
 namespace xla{
 namespace vsiplugin{
@@ -38,8 +39,9 @@ se::DeviceMemoryBase VsiExecutor::Allocate(uint64 size, int64 memory_space){
                                         0);
     tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
                                     tim::vx::TensorAttribute::VARIABLE, input_quant);
-    auto input = kVsiGraphContainer[ordinal_]->CreateTensor(input_spec);
-    return se::DeviceMemoryBase(input.get(), size);
+    kVsiTensorContainer.push_back( kVsiGraphContainer[ordinal_]->CreateTensor(input_spec) );
+    LOG(INFO)<<" allocat ptx" <<kVsiTensorContainer.back().get();
+    return se::DeviceMemoryBase( kVsiTensorContainer.back().get(), size);
 }
 
 void *VsiExecutor::GetSubBuffer(se::DeviceMemoryBase *parent, uint64 offset, uint64 size) {
@@ -48,7 +50,14 @@ void *VsiExecutor::GetSubBuffer(se::DeviceMemoryBase *parent, uint64 offset, uin
 }
 
 void VsiExecutor::Deallocate(se::DeviceMemoryBase *mem) {
-    LOG(FATAL) << "Not Implemented";
+    auto t = static_cast<tim::vx::Tensor*>(mem->opaque());
+
+    for(auto it = kVsiTensorContainer.begin(); it != kVsiTensorContainer.end(); ){
+        if(it->get() == t){
+            it = kVsiTensorContainer.erase(it);
+            break;
+        }
+    }
 }
 
 void *VsiExecutor::HostMemoryAllocate(uint64 size){
@@ -70,42 +79,59 @@ bool VsiExecutor::SynchronizeAllActivity(){
 
 port::Status VsiExecutor::SynchronousMemZero(se::DeviceMemoryBase *location,
                                 uint64 size){
-        return port::InternalError("Not implemented");
-    }
+    LOG(FATAL) << "Not Implemented";
+    return port::Status::OK();
+}
 port::Status VsiExecutor::SynchronousMemSet(se::DeviceMemoryBase *location, int value,
                                 uint64 size){
-        return port::InternalError("Not implemented");
-    }
+    LOG(FATAL) << "Not Implemented";
+    return port::Status::OK();
+}
 port::Status VsiExecutor::SynchronousMemcpy(se::DeviceMemoryBase *gpu_dst,
                                 const void *host_src, uint64 size){
-        return port::InternalError("Not implemented");
-    }
+    auto t = static_cast<tim::vx::Tensor *>(gpu_dst->opaque());
+    t->CopyDataToTensor(host_src, size);
+    return port::Status::OK();
+}
 port::Status VsiExecutor::SynchronousMemcpy(void *host_dst,
                                 const se::DeviceMemoryBase &gpu_src,
                                 uint64 size){
-        return port::InternalError("Not implemented");
-    }
+    auto t = static_cast<tim::vx::Tensor*>(const_cast<void *>(gpu_src.opaque()));
+    t->CopyDataFromTensor(host_dst);
+    return port::Status::OK();
+}
 port::Status VsiExecutor::SynchronousMemcpyDeviceToDevice(
     se::DeviceMemoryBase *gpu_dst, const se::DeviceMemoryBase &gpu_src,
     uint64 size){
-        return port::InternalError("Not implemented");
-     }
+    LOG(FATAL) << "Not Implemented";
+    return port::Status::OK();
+}
 port::Status VsiExecutor::MemZero(se::Stream *stream, se::DeviceMemoryBase *location,
                         uint64 size){
-        return port::InternalError("Not implemented");
-    }
+    LOG(FATAL) << "Not Implemented";
+    return port::Status::OK();
+}
 port::Status VsiExecutor::Memset32(se::Stream *stream, se::DeviceMemoryBase *location,
                           uint32 pattern, uint64 size){
-        return port::InternalError("Not implemented");
-    }
+    LOG(FATAL) << "Not Implemented";
+    return port::Status::OK();
+}
 
 bool VsiExecutor::Memcpy(se::Stream *stream, void *host_dst,
             const se::DeviceMemoryBase &gpu_src, uint64 size){
-    LOG(FATAL) << "Not Implemented";
+    AsVsiStream(stream)->EnqueueTask([this, host_dst, gpu_src, size]() {
+        auto ok = SynchronousMemcpy(host_dst, gpu_src, size);
+    });
+    AsVsiStream(stream)->BlockUntilDone();
+    return true;
 }
 bool VsiExecutor::Memcpy(se::Stream *stream, se::DeviceMemoryBase *gpu_dst,
             const void *host_src, uint64 size){
-    LOG(FATAL) << "Not Implemented";
+    AsVsiStream(stream)->EnqueueTask([this, &gpu_dst, &host_src, size]() {
+        auto ok = SynchronousMemcpy(gpu_dst, host_src, size);
+    });
+    AsVsiStream(stream)->BlockUntilDone();
+    return true;
 }
 bool VsiExecutor::MemcpyDeviceToDevice(se::Stream *stream, se::DeviceMemoryBase *gpu_dst,
                             const se::DeviceMemoryBase &gpu_src,
@@ -128,16 +154,20 @@ bool VsiExecutor::HostCallback(se::Stream *stream,
     LOG(FATAL) << "Not Implemented";
 }
 port::Status VsiExecutor::AllocateEvent(se::Event *event){
-    return port::InternalError("Not implemented");
+    LOG(FATAL) << "Not Implemented";
+    return port::Status::OK();
 }
 port::Status VsiExecutor::DeallocateEvent(se::Event *event){
-    return port::InternalError("Not implemented");
+    LOG(FATAL) << "Not Implemented";
+    return port::Status::OK();
 }
 port::Status VsiExecutor::RecordEvent(se::Stream *stream, se::Event *event){
-    return port::InternalError("Not implemented");
+    LOG(FATAL) << "Not Implemented";
+    return port::Status::OK();
 }
 port::Status VsiExecutor::WaitForEvent(se::Stream *stream, se::Event *event){
-    return port::InternalError("Not implemented");
+    LOG(FATAL) << "Not Implemented";
+    return port::Status::OK();
 }
 se::Event::Status VsiExecutor::PollForEventStatus(se::Event *event){
     return se::Event::Status::kError;
@@ -171,13 +201,15 @@ bool VsiExecutor::StopTimer(se::Stream *stream, Timer *timer) {
 }
 
 port::Status VsiExecutor::BlockHostUntilDone(se::Stream *stream){
-    return port::InternalError("Not implemented");
+    AsVsiStream(stream)->BlockUntilDone();
+    return port::Status::OK();
 }
 int VsiExecutor::PlatformDeviceCount(){
     LOG(FATAL) << "Not Implemented";
 }
 port::Status VsiExecutor::EnablePeerAccessTo(StreamExecutorInterface *other){
-    return port::InternalError("Not implemented");
+    LOG(FATAL) << "Not Implemented";
+    return port::Status::OK();
 }
 bool VsiExecutor::CanEnablePeerAccessTo(StreamExecutorInterface *other){
     LOG(FATAL) << "Not Implemented";
@@ -187,7 +219,8 @@ se::SharedMemoryConfig VsiExecutor::GetDeviceSharedMemoryConfig(){
 }
 port::Status VsiExecutor::SetDeviceSharedMemoryConfig(
     se::SharedMemoryConfig config){
-    return port::InternalError("Not implemented");
+    LOG(FATAL) << "Not Implemented";
+    return port::Status::OK();
 }
 port::StatusOr<std::unique_ptr<se::DeviceDescription>>
     VsiExecutor::CreateDeviceDescription() const {

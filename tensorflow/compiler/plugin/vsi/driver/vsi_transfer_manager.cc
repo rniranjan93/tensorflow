@@ -33,15 +33,18 @@ namespace vsiplugin {
 
     Status VsiTransferManager::TransferLiteralToInfeed(se::StreamExecutor* executor,
                                     const LiteralSlice& literal) {
-
+        LOG(FATAL) << "Not Implemented";
+        return Status::OK();
     }
     Status VsiTransferManager::TransferLiteralFromOutfeed(se::StreamExecutor* executor,
                                     const Shape& literal_shape,
                                     MutableBorrowingLiteral literal) {
-
+        LOG(FATAL) << "Not Implemented";
+        return Status::OK();
     }
     Status VsiTransferManager::ResetDevices(absl::Span<se::StreamExecutor* const> executors) {
-
+        LOG(FATAL) << "Not Implemented";
+        return Status::OK();
     }
 
 } // namespace vsiplugin 

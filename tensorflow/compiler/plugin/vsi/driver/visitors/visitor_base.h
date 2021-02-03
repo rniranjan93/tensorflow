@@ -42,11 +42,11 @@ class BaseVisitor : public DfsHloVisitor {
 
   virtual const Shape& GetOutputShape(HloInstruction*) const;
 
-    Literal evaluate(const HloComputation& computation,
-        absl::Span<const Literal* const> arg_literals);
+    Literal evaluate(const HloComputation& computation
+         /*absl::Span<const Literal* const> arg_literals*/);
     
-    se::DeviceMemoryBase evaluate(const HloComputation& computation
-        /*absl::Span<const se::DeviceMemoryBase* const> arg_literals*/);
+    se::DeviceMemoryBase evaluate(const HloComputation& computation,
+        absl::Span<const se::DeviceMemoryBase* const> arg_literals);
 
     Status HandleHloOp(HloInstruction* hlo);
 
