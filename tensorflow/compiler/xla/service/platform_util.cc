@@ -105,7 +105,8 @@ PlatformUtil::GetSupportedPlatforms() {
       LOG(INFO) << "platform ["<< i<< "] = "<< platforms[i]->Name();
     }
     for (int i = 0; i < platforms.size(); i++) {
-      if (absl::AsciiStrToLower(platforms[i]->Name()) == kInterpreter ) {
+      //if (absl::AsciiStrToLower(platforms[i]->Name()) == kInterpreter ) {
+      if (absl::AsciiStrToLower(platforms[i]->Name()) == "vsi-npu" ) {
         platform = platforms[i];
         break;
       }
