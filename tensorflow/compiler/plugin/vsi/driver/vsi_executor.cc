@@ -52,7 +52,7 @@ void *VsiExecutor::GetSubBuffer(se::DeviceMemoryBase *parent, uint64 offset, uin
 void VsiExecutor::Deallocate(se::DeviceMemoryBase *mem) {
     auto t = static_cast<tim::vx::Tensor*>(mem->opaque());
 
-    for(auto it = kVsiTensorContainer.begin(); it != kVsiTensorContainer.end(); ){
+    for(auto it = kVsiTensorContainer.begin(); it != kVsiTensorContainer.end(); it++){
         if(it->get() == t){
             it = kVsiTensorContainer.erase(it);
             break;

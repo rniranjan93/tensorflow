@@ -18,14 +18,14 @@ limitations under the License.
 
 #include <string>
 #include <unordered_map>
-
+#include "tensorflow/compiler/plugin/vsi/driver/vsi_executor.h"
 #include "tensorflow/compiler/xla/service/dfs_hlo_visitor.h"
 #include "tensorflow/compiler/xla/service/hlo_evaluator.h"
 #include "tensorflow/compiler/xla/service/hlo_instruction.h"
+#include "tensorflow/compiler/xla/shape.h"
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
-
-
+#include "tim/vx/types.h"
 namespace xla {
 namespace vsiplugin {
 
@@ -37,16 +37,52 @@ namespace vsiplugin {
  */
 class BaseVisitor : public DfsHloVisitor {
  public:
-  BaseVisitor(std::shared_ptr<tim::vx::Context> context, std::shared_ptr<tim::vx::Graph> graph) :
-   context_(context), graph_(graph) {};
+  BaseVisitor(VsiExecutor* executor) : executor_(executor),
+   graph_(executor->getGraph()) {};
 
+  std::shared_ptr<tim::vx::Tensor> converTensorFromShape(const Shape &shape,
+    tim::vx::TensorAttribute attr = tim::vx::TensorAttribute::INPUT){
+    tim::vx::ShapeType timShape;
+    tim::vx::Quantization timQuant;
+    if(shape.is_static()){
+        for( auto d : shape.dimensions())
+        timShape.push_back(d);
+    }
+    auto type = convertTfPrimitiveTypeToTim(shape.element_type());
+    if(type != tim::vx::DataType::FLOAT32 &&
+       type != tim::vx::DataType::FLOAT16) {
+         LOG(FATAL)<< "NOT implement";
+       }
+    tim::vx::TensorSpec timSpec(type, timShape,
+                attr, timQuant);
+    return graph_->CreateTensor(timSpec);
+  }
+
+  static tim::vx::DataType convertTfPrimitiveTypeToTim(xla::PrimitiveType xlaType){
+      switch(xlaType){
+        case S8:{
+          return tim::vx::DataType::INT8;
+        }
+        case S16:{
+          return tim::vx::DataType::INT16;
+        }
+        case S32:{
+          return tim::vx::DataType::INT32;
+        }
+        case F32:{
+          return tim::vx::DataType::FLOAT32;
+        }
+        default:
+          LOG(FATAL)<<"not supported datat type";
+      }
+  }
   virtual const Shape& GetOutputShape(HloInstruction*) const;
 
     Literal evaluate(const HloComputation& computation
          /*absl::Span<const Literal* const> arg_literals*/);
     
-    se::DeviceMemoryBase evaluate(const HloComputation& computation,
-        absl::Span<const se::DeviceMemoryBase* const> arg_literals);
+    std::shared_ptr<tim::vx::Tensor> evaluate(const HloComputation& computation,
+        absl::Span<std::shared_ptr<tim::vx::Tensor>> arg_literals);
 
     Status HandleHloOp(HloInstruction* hlo);
 
@@ -72,6 +108,15 @@ class BaseVisitor : public DfsHloVisitor {
         CHECK(it != evaluated_.end())
             << "could not find evaluated value for: " << hlo->ToString();
         return it->second;
+    }
+    const std::shared_ptr<tim::vx::Tensor> GetEvaluatedTensorFor(const HloInstruction* hlo) {
+        // if (hlo->opcode() == HloOpcode::kParameter) {
+        //     return *arg_literals_.at(hlo->parameter_number());
+        // }
+        auto it = evaluatedDevMem_.find(hlo);
+        CHECK(it != evaluatedDevMem_.end())
+            << "could not find evaluated value for: " << hlo->ToString();
+        return executor_->getTensor( it->second );
     }
 
   // Called by HandleElementwiseBinarythe FinishVisit.
@@ -167,13 +212,15 @@ class BaseVisitor : public DfsHloVisitor {
   std::unique_ptr<HloEvaluator> cpu_evaluator_;
 
 private:
+    VsiExecutor *executor_;
+
     // Tracks the HLO instruction and its evaluated literal result.
     // Parameters and constants aren't stored here,
     // TODO: it is better the Literal value was repalced with device memory
     //       handle.
     std::unordered_map<const HloInstruction *, Literal> evaluated_;
+    std::unordered_map<const HloInstruction *, int> evaluatedDevMem_;
 
-    std::shared_ptr<tim::vx::Context> context_;
     std::shared_ptr<tim::vx::Graph> graph_;
 };
 

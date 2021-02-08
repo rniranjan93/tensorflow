@@ -44,7 +44,7 @@ namespace vsiplugin{
 class VsiExecutable : public Executable  {
 public:
     explicit VsiExecutable( std::shared_ptr<HloModule> hlo_module,
-    std::shared_ptr<tim::vx::Context> context, std::shared_ptr<tim::vx::Graph> graph);
+    VsiExecutor *executor);
 
     ~VsiExecutable();
 
@@ -71,8 +71,7 @@ public:
 
 private:
     std::unique_ptr<BaseVisitor> visitor_;
-    std::shared_ptr<tim::vx::Context> kVsiContext_;
-    std::shared_ptr<tim::vx::Graph> kVsiGraph_;
+    VsiExecutor *executor_;
 };
     
 } // namespace vsiplugin

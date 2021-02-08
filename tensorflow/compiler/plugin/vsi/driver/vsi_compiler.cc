@@ -64,8 +64,7 @@ StatusOr<std::unique_ptr<Executable>> VsiCompiler::RunBackend(
         std::unique_ptr<Executable> executable =
             absl::make_unique<vsiplugin::VsiExecutable>(
                 std::move(hlo_module),
-                dynamic_cast<VsiExecutor*>(stream_exec->implementation())->getContext(),
-                dynamic_cast<VsiExecutor*>(stream_exec->implementation())->getGraph(stream_exec->device_ordinal()));
+                dynamic_cast<VsiExecutor*>(stream_exec->implementation()));
 
         return std::move(executable);
     }

@@ -34,6 +34,8 @@ limitations under the License.
 #include "tensorflow/compiler/xla/status_macros.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/stream_executor/lib/initialize.h"
+#include "tim/vx/operation.h"
+#include "tim/vx/ops/elementwise.h"
 
 using tensorflow::str_util::StartsWith;
 
@@ -46,13 +48,21 @@ Literal BaseVisitor::evaluate(const HloComputation& computation
     return GetEvaluatedLiteralFor(computation.root_instruction()).Clone();
 }
 
-se::DeviceMemoryBase BaseVisitor::evaluate(const HloComputation& computation,
-    absl::Span<const se::DeviceMemoryBase* const> arg_literals){
+std::shared_ptr<tim::vx::Tensor> BaseVisitor::evaluate(
+    const HloComputation& computation,
+    absl::Span<std::shared_ptr<tim::vx::Tensor>> arg_literals){
     computation.Accept(this);
-    auto result_lieral = GetEvaluatedLiteralFor(computation.root_instruction()).Clone();
-    
+    if (!graph_->Compile()) {
+        LOG(FATAL) << "Compile graph fail.";
+        return nullptr;
+    }
+    if(!graph_->Run()){
+        LOG(FATAL) << "Run graph fail";
+        return nullptr;
+    }
+    return GetEvaluatedTensorFor(computation.root_instruction());
 }
-    
+
 const Shape& BaseVisitor::GetOutputShape(HloInstruction* inst) const {
   return inst->shape();
 }
@@ -68,15 +78,13 @@ Status BaseVisitor::HandleElementwiseBinary(HloInstruction* hlo){
             TF_RET_CHECK(ShapeUtil::SameDimensions(shape, rhs->shape()));
             TF_RET_CHECK(ShapeUtil::SameDimensions(lhs->shape(), rhs->shape()));
 
-            const Literal& lhs_literal = GetEvaluatedLiteralFor(lhs);
-            const Literal& rhs_literal = GetEvaluatedLiteralFor(rhs);
+            auto lhs_tensor = GetEvaluatedTensorFor(lhs);
+            auto rhs_tensor = GetEvaluatedTensorFor(rhs);
+            auto out_tensor = converTensorFromShape(shape, tim::vx::TensorAttribute::OUTPUT);
+            auto add = graph_->CreateOperation<tim::vx::ops::Add>();
+            (*add).BindInput(lhs_tensor).BindInput(rhs_tensor).BindOutput(out_tensor);
 
-            Literal result(shape);
-            result.Populate<float>([&](absl::Span<const int64> multi_index) {
-                return  lhs_literal.Get<float>(multi_index) +
-                        rhs_literal.Get<float>(multi_index);
-            });
-            evaluated_[hlo] = std::move(result);
+            evaluatedDevMem_[hlo] = executor_->setTensor(out_tensor);
             break;
         }
         default:
@@ -97,6 +105,16 @@ Status BaseVisitor::Unimplemented(HloInstruction* inst) {
 
 Status BaseVisitor::HandleConstant(HloInstruction* hlo){
     LOG(INFO) << "PROCESS Constant";
+    if(evaluatedDevMem_.find(hlo) == evaluatedDevMem_.end()){
+        auto& literal = hlo->literal();
+
+        ShapeIndex shapeIndex({});
+        const float* buffer = literal.data<float>(shapeIndex).data();
+        auto timTensor = converTensorFromShape(literal.shape());
+        timTensor->CopyDataToTensor((void *)buffer);
+        evaluatedDevMem_[hlo] = executor_->setTensor(timTensor);
+    }
+
     return Status::OK();
 }
 }  // namespace poplarplugin

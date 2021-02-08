@@ -28,20 +28,22 @@ limitations under the License.
 #include "tensorflow/compiler/xla/service/hlo_instruction.h"
 #include "tensorflow/compiler/xla/service/transfer_manager.h"
 #include "tensorflow/compiler/xla/shape_util.h"
+#include "tensorflow/compiler/xla/service/shaped_buffer.h"
 #include "tensorflow/compiler/xla/status_macros.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow/compiler/plugin/vsi/driver/vsi_executor.h"
 
 namespace xla{
 namespace vsiplugin{
 
 VsiExecutable::VsiExecutable(std::shared_ptr<HloModule> hlo_module,
- std::shared_ptr<tim::vx::Context> context, std::shared_ptr<tim::vx::Graph> graph) :
+        VsiExecutor *executor) :
         Executable( std::move(hlo_module),
                     /*hlo_profile_printer_data=*/nullptr,
                     /*hlo_profile_index_map=*/nullptr),
-        visitor_(std::move(std::make_unique<BaseVisitor>(context, graph))), 
-        kVsiContext_(context), kVsiGraph_(graph) {
+        visitor_(std::move(std::make_unique<BaseVisitor>(executor))),
+        executor_(executor) {
             visitor_->ResetVisitStates();
         }
 
@@ -74,7 +76,7 @@ StatusOr<ExecutionOutput> VsiExecutable::ExecuteAsyncOnStream(
             return tensorflow::errors::Internal(
             "Mismatch between argument count and graph parameter count.");
         }
-
+#if CPU_PATH
         Literal result_literal = visitor_->evaluate(*computation);
         se::Stream* stream = run_options->stream();
         se::StreamExecutor* executor = stream->parent();
@@ -91,6 +93,25 @@ StatusOr<ExecutionOutput> VsiExecutable::ExecuteAsyncOnStream(
         run_options->stream(), result_literal, result_buffers));
         ExecutionOutput result(std::move(result_buffers));
         return result;
+#else
+        se::Stream* stream = run_options->stream();
+        se::StreamExecutor* executor = stream->parent();
+
+        auto tensor = visitor_->evaluate(*computation, {});
+        auto root_instr = computation->root_instruction();
+        static se::DeviceMemoryBase devMem(tensor.get(),
+            ShapeUtil::ByteSizeOf(root_instr->shape()));
+        LOG(INFO) << "Result tensor ptr = " << tensor.get();
+
+        ScopedShapedBuffer shaped_buffer( root_instr->shape(),  root_instr->shape(),
+                                        run_options->allocator(), executor->device_ordinal());
+        const ShapeIndex shapeIndex;
+        for(auto& pair : shaped_buffer.buffers()){
+            pair.second = devMem;
+        }
+        ExecutionOutput result(std::move(shaped_buffer));
+        return result;
+#endif
     }
 
 StatusOr<std::vector<ScopedShapedBuffer>> VsiExecutable::ExecuteOnStreams(

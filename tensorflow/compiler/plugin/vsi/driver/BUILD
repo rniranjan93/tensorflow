@@ -145,6 +145,7 @@ cc_library(
     ],
     hdrs = ["visitors/visitor_base.h"],
     deps = [
+        ":vsi_executor",
         "//tensorflow/compiler/xla/service/cpu:runtime_single_threaded_matmul",
         "//tensorflow/compiler/xla/service:dynamic_dimension_inference",
         "//tensorflow/compiler/xla/service:hlo",
