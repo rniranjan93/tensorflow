@@ -41,6 +41,7 @@ cc_library(
     copts = tflite_copts(),
     deps = [
         "//tensorflow/lite/c:common",
+        "//tensorflow/lite/delegates/vx-delegate:vx_delegate",
     ] + select({
         "//tensorflow:android": [
             "//tensorflow/lite/delegates/gpu:delegate",
