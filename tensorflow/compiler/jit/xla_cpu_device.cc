@@ -78,7 +78,8 @@ Status XlaCpuDeviceFactory::CreateDevices(
   (void)registrations;
 
   TF_ASSIGN_OR_RETURN(auto platform,
-                      se::MultiPlatformManager::PlatformWithName("Host"));
+  se::MultiPlatformManager::PlatformWithName("vsi-npu"));
+  //                    se::MultiPlatformManager::PlatformWithName("Host"));
 
   XlaDevice::Options options;
   options.platform = platform;
