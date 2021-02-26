@@ -5,10 +5,10 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 def repo():
     http_archive(
         name = "tim_vx",
-        strip_prefix = "TIM-VX-1.1.28",
-        sha256 = "97fc9e8336e62369cf5ff2343ecfce3d003c0b971dd84dab7b3ef278d9df120f",
+        strip_prefix = "TIM-VX-1.1.30",
+        sha256 = "b1b751d0b0e14e0e39cb6414dde53bbd1baadde771f4796f297dc75be291ebf7",
         urls = [
-            "https://github.com/VeriSilicon/TIM-VX/archive/v1.1.28.tar.gz",
+            "https://github.com/VeriSilicon/TIM-VX/archive/v1.1.30.tar.gz",
         ],
     )
 
