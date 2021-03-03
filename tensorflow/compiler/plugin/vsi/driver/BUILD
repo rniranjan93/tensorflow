@@ -137,6 +137,53 @@ cc_library(
     alwayslink = True,  # Contains per-platform transfer manager registration
 )
 
+cc_library(
+    name = "common",
+    srcs = [],
+    hdrs = [
+        "xla_vsi_npu_common.cc",
+    ],
+)
+
+cc_library(
+    name = "vsi_backend",
+    srcs = [
+        "xla_vsi_npu_backend.cc",
+    ],
+    hdrs = [],
+    linkstatic = 1,
+    deps = [
+        ":common",
+        "//tensorflow/compiler/tf2xla:xla_compiler",
+        "//tensorflow/core:framework_headers_lib",
+        "//third_party/eigen3",
+        "@com_google_protobuf//:protobuf_headers",
+    ],
+    alwayslink = True,
+)
+
+cc_library(
+    name = "vsi_xla_device",
+    srcs = [
+        "xla_vsi_npu_device.cc",
+    ],
+    hdrs = [],
+    data = [
+    ],
+    linkstatic = 1,
+    deps = [
+        ":common",
+        ":vsi_executor",
+        "//tensorflow/compiler/jit:xla_device",
+        "//tensorflow/compiler/jit:xla_jit_headers_lib",
+#        "//tensorflow/compiler/jit/kernels:xla_ops",
+        "//tensorflow/compiler/tf2xla:xla_compiler",
+        "//tensorflow/core:framework_headers_lib",
+        "//tensorflow/core/kernels:constant_op",
+        "//tensorflow/core/kernels:no_op",
+    ],
+    alwayslink = True,
+)
 
 cc_library(
     name = "visitor_base",
