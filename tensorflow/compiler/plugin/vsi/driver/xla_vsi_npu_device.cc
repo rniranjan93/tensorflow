@@ -17,21 +17,70 @@ limitations under the License.
 #include "tensorflow/compiler/jit/kernels/xla_ops.h"
 #include "tensorflow/compiler/jit/xla_device.h"
 #include "tensorflow/compiler/jit/xla_device_ops.h"
-#include "tensorflow/compiler/plugin/vsi/driver/vsi_executor.h"
 #include "tensorflow/compiler/plugin/vsi/driver/vsi_platform.h"
 #include "tensorflow/compiler/tf2xla/kernels/index_ops.h"
 #include "tensorflow/compiler/tf2xla/shape_util.h"
 #include "tensorflow/compiler/tf2xla/xla_op_registry.h"
+#include "tensorflow/compiler/tf2xla/tf2xla_util.h"
 
 #include "tensorflow/core/framework/kernel_def.pb.h"
 #include "tensorflow/core/kernels/no_op.h"
 
 namespace tensorflow {
+const char* const DEVICE_XLA_VSI_NPU = "VSI-NPU";
+const char* const DEVICE_VSI_NPU_XLA_JIT = "XLA_VSI_NPU_JIT";
+const char* const PLATFORM_NAME = "vsi-npu";
 
-extern const char* const DEVICE_XLA_VSI_NPU;
-extern const char* const DEVICE_VSI_NPU_XLA_JIT;
-extern const char* const PLATFORM_NAME;
-extern std::vector<DataType> GetVsiNpuSupportedTypes();
+std::vector<DataType> GetVsiNpuSupportedTypes() {
+  // Supress the unused warning.
+  (void)GetVsiNpuSupportedTypes;
+
+  // Lambda which will get all the supported types given the flags.
+  auto get_types = [] {
+    std::vector<DataType> supported = {DT_INT32, DT_INT64, DT_FLOAT, DT_HALF,
+                                       DT_BOOL};
+    return supported;
+  };
+
+  static std::vector<DataType> supported_types = get_types();
+  return supported_types;
+};
+
+static bool OpFilter(KernelDef* kdef) {
+  if (kdef->op() == "Angle") return false;
+  if (kdef->op() == "Complex") return false;
+  if (kdef->op() == "ComplexAbs") return false;
+  if (kdef->op() == "Conj") return false;
+  if (kdef->op() == "FFT") return false;
+  if (kdef->op() == "FFT2D") return false;
+  if (kdef->op() == "FFT3D") return false;
+  if (kdef->op() == "IFFT") return false;
+  if (kdef->op() == "IFFT2D") return false;
+  if (kdef->op() == "IFFT3D") return false;
+  if (kdef->op() == "Imag") return false;
+  if (kdef->op() == "MaxPoolGradGrad") return false;
+  if (kdef->op() == "MaxPool3DGradGrad") return false;
+  if (kdef->op() == "NonMaxSuppressionV4") return false;
+  if (kdef->op() == "Qr") return false;
+  if (kdef->op() == "Real") return false;
+
+  if (kdef->op() == "Assert") {
+    AddDtypeToKernelDefConstraint("T", DT_STRING, kdef);
+  }
+  if (kdef->op() == "Const") {
+    AddDtypeToKernelDefConstraint("dtype", DT_STRING, kdef);
+  }
+  if (kdef->op() == "Function" || kdef->op() == "Pipeline" ||
+      kdef->op() == "PipelineStage" || kdef->op() == "PipelineStageBackward" ||
+      kdef->op() == "ResourceUpdate" || kdef->op() == "MultiConv") {
+    AddDtypeToKernelDefConstraint("Tin", DT_RESOURCE, kdef);
+    AddDtypeToKernelDefConstraint("Tout", DT_RESOURCE, kdef);
+    AddDtypeToKernelDefConstraint("Tin", DT_VARIANT, kdef);
+    AddDtypeToKernelDefConstraint("Tout", DT_VARIANT, kdef);
+  }
+
+  return true;
+}
 
 class VsiNpuDevice : public XlaDevice {
  public:
@@ -101,7 +150,7 @@ Status XlaVsiNpuDeviceFactory::CreateDevices(
   return Status::OK();
 }
 
-REGISTER_LOCAL_DEVICE_FACTORY(DEVICE_XLA_VSI_NPU, XlaVsiNpuDeviceFactory);
+REGISTER_LOCAL_DEVICE_FACTORY(DEVICE_XLA_VSI_NPU, XlaVsiNpuDeviceFactory, 500);
 
 REGISTER_XLA_LAUNCH_KERNEL(DEVICE_XLA_VSI_NPU, XlaLocalLaunchOp,
                            GetVsiNpuSupportedTypes());
@@ -110,5 +159,7 @@ REGISTER_XLA_COMPILE_KERNEL(DEVICE_XLA_VSI_NPU, XlaCompileOp,
 REGISTER_XLA_RUN_KERNEL(DEVICE_XLA_VSI_NPU, XlaRunOp, GetVsiNpuSupportedTypes());
 
 REGISTER_XLA_DEVICE_KERNELS(DEVICE_XLA_VSI_NPU, GetVsiNpuSupportedTypes());
+
+REGISTER_XLA_BACKEND(DEVICE_VSI_NPU_XLA_JIT, GetVsiNpuSupportedTypes(), OpFilter);
 
 } // tensorflow
