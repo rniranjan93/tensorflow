@@ -301,7 +301,6 @@ cc_library(
         "//tensorflow/compiler/xla/client:local_client",
         "//tensorflow/compiler/xla/client:xla_computation",
         "//tensorflow/compiler/xla/service:cpu_plugin",
-        "//tensorflow/compiler/plugin/vsi/driver:vsi_plugin",
         "//tensorflow/compiler/xla/service:platform_util",
         "//tensorflow/compiler/xla/service/cpu:buffer_info_util",
         "//tensorflow/compiler/xla/service/cpu:cpu_executable",

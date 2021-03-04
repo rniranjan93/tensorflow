@@ -48,6 +48,7 @@ cc_library(
     deps = [
         ":xla_cpu_device",
         ":xla_cpu_jit",
+        "//tensorflow/compiler/plugin/vsi/driver:vsi_xla_device",
         "//tensorflow/compiler/plugin",
     ] + if_cuda_or_rocm([
         ":xla_gpu_device",
@@ -66,7 +67,6 @@ cc_library(
         "//tensorflow/compiler/tf2xla/kernels:xla_dummy_ops",
         "//tensorflow/compiler/tf2xla/kernels:xla_ops",
         "//tensorflow/compiler/xla/service:cpu_plugin",
-        "//tensorflow/compiler/plugin/vsi/driver:vsi_plugin",
     ],
     alwayslink = 1,
 )
@@ -98,7 +98,6 @@ cc_library(
         "//tensorflow/compiler/tf2xla:xla_compiler",
         "//tensorflow/compiler/tf2xla/kernels:xla_ops",
         "//tensorflow/compiler/xla/service:cpu_plugin",  # buildcleaner: keep
-        "//tensorflow/compiler/plugin/vsi/driver:vsi_plugin",
         "//tensorflow/core:core_cpu_internal",
         "//tensorflow/core:lib",
         "@com_google_absl//absl/memory",
