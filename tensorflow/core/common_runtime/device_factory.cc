@@ -83,6 +83,10 @@ void DeviceFactory::Register(const string& device_type, DeviceFactory* factory,
 
 DeviceFactory* DeviceFactory::GetFactory(const string& device_type) {
   tf_shared_lock l(*get_device_factory_lock());
+  std::unordered_map<string, FactoryItem>& factories = device_factories();
+  for(auto &f : factories){
+    LOG(INFO) << "device factory name = " << f.first;
+  }
   auto it = device_factories().find(device_type);
   if (it == device_factories().end()) {
     return nullptr;
@@ -93,6 +97,7 @@ DeviceFactory* DeviceFactory::GetFactory(const string& device_type) {
 Status DeviceFactory::ListAllPhysicalDevices(std::vector<string>* devices) {
   // CPU first. A CPU device is required.
   auto cpu_factory = GetFactory("CPU");
+  //auto cpu_factory = GetFactory("VSI-NPU");
   if (!cpu_factory) {
     return errors::NotFound(
         "CPU Factory not registered. Did you link in threadpool_device?");
