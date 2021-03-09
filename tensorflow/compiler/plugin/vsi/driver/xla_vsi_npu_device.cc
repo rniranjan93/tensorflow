@@ -27,8 +27,8 @@ limitations under the License.
 #include "tensorflow/core/kernels/no_op.h"
 
 namespace tensorflow {
-const char* const DEVICE_XLA_VSI_NPU = "VSI-NPU";
-const char* const DEVICE_VSI_NPU_XLA_JIT = "XLA_VSI_NPU_JIT";
+const char* const DEVICE_XLA_VSI_NPU = "NPU";
+const char* const DEVICE_VSI_NPU_XLA_JIT = "XLA_NPU_JIT";
 const char* const PLATFORM_NAME = "vsi-npu";
 
 std::vector<DataType> GetVsiNpuSupportedTypes() {
@@ -98,6 +98,7 @@ class XlaVsiNpuDeviceFactory : public DeviceFactory {
                        std::vector<std::unique_ptr<Device>>* devices) override;
 
   virtual Status ListPhysicalDevices(std::vector<string>* devices) override {
+    //devices->push_back(absl::StrCat("/physical_device:", DEVICE_XLA_VSI_NPU, ":0"));
     devices->push_back(absl::StrCat("/physical_device:", DEVICE_XLA_VSI_NPU, ":0"));
     return Status::OK();
   }
