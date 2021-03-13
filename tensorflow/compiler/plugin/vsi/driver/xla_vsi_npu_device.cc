@@ -37,7 +37,7 @@ std::vector<DataType> GetVsiNpuSupportedTypes() {
 
   // Lambda which will get all the supported types given the flags.
   auto get_types = [] {
-    std::vector<DataType> supported = {DT_INT32, DT_INT64, DT_FLOAT, DT_HALF,
+    std::vector<DataType> supported = {DT_INT32, DT_INT64, DT_DOUBLE, DT_FLOAT, DT_HALF,
                                        DT_BOOL};
     return supported;
   };
