@@ -36,7 +36,7 @@ package(
 cc_library(
     name = "plugin",
     deps = [
-        "//tensorflow/compiler/plugin/vsi/driver:vsi_xla_device",
+        "//tensorflow/compiler/plugin/vsi/driver:vsi_plugin",
     ],
 )
 
@@ -46,5 +46,6 @@ cc_library(
     name = "plugin_device",
     deps = [
         "//tensorflow/compiler/jit:xla_device",
+        "//tensorflow/compiler/plugin/vsi/driver:vsi_xla_device"
     ],
 )
