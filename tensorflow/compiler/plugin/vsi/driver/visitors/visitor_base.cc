@@ -50,7 +50,8 @@ Literal BaseVisitor::evaluate(const HloComputation& computation
 
 std::shared_ptr<tim::vx::Tensor> BaseVisitor::evaluate(
     const HloComputation& computation,
-    absl::Span<std::shared_ptr<tim::vx::Tensor>> arg_literals){
+    std::vector<Literal>& argument_literals){
+    arg_literals_ = std::move(argument_literals);
     computation.Accept(this);
     if (!graph_->Compile()) {
         LOG(FATAL) << "Compile graph fail.";
@@ -80,7 +81,7 @@ Status BaseVisitor::HandleElementwiseBinary(HloInstruction* hlo){
 
             auto lhs_tensor = GetEvaluatedTensorFor(lhs);
             auto rhs_tensor = GetEvaluatedTensorFor(rhs);
-            auto out_tensor = converTensorFromShape(shape, tim::vx::TensorAttribute::OUTPUT);
+            auto out_tensor = createTensorFromShape(shape, tim::vx::TensorAttribute::OUTPUT);
             auto add = graph_->CreateOperation<tim::vx::ops::Add>();
             (*add).BindInput(lhs_tensor).BindInput(rhs_tensor).BindOutput(out_tensor);
 
@@ -103,6 +104,28 @@ Status BaseVisitor::Unimplemented(HloInstruction* inst) {
                             HloOpcodeString(inst->opcode()).c_str());
 }
 
+Status BaseVisitor::HandleParameter(HloInstruction* hlo){
+    CHECK_LT(hlo->parameter_number(), arg_literals_.size());
+
+    auto& input_literal = arg_literals_[hlo->parameter_number()];
+    VLOG(2) << "Parameter evaluated to: " << input_literal.ToString();
+    DCHECK(Shape::Equal().MinorToMajorOnlyInLayout()(hlo->shape(),
+                                                    input_literal.shape()))
+        << "parameter shape is: "
+        << ShapeUtil::HumanStringWithLayout(hlo->shape())
+        << ", but input literal shape is: "
+        << ShapeUtil::HumanStringWithLayout(input_literal.shape());
+
+    if(evaluatedDevMem_.find(hlo) == evaluatedDevMem_.end()){
+        ShapeIndex shapeIndex({});
+        const float* buffer = input_literal.data<float>(shapeIndex).data();
+        auto timTensor = createTensorFromShape(input_literal.shape());
+        timTensor->CopyDataToTensor((void *)buffer);
+        evaluatedDevMem_[hlo] = executor_->setTensor(timTensor);
+    }
+
+    return Status::OK();
+}
 Status BaseVisitor::HandleConstant(HloInstruction* hlo){
     LOG(INFO) << "PROCESS Constant";
     if(evaluatedDevMem_.find(hlo) == evaluatedDevMem_.end()){
@@ -110,7 +133,7 @@ Status BaseVisitor::HandleConstant(HloInstruction* hlo){
 
         ShapeIndex shapeIndex({});
         const float* buffer = literal.data<float>(shapeIndex).data();
-        auto timTensor = converTensorFromShape(literal.shape());
+        auto timTensor = createTensorFromShape(literal.shape());
         timTensor->CopyDataToTensor((void *)buffer);
         evaluatedDevMem_[hlo] = executor_->setTensor(timTensor);
     }

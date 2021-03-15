@@ -177,6 +177,7 @@ cc_library(
         "//tensorflow/compiler/xla/service:hlo_value",
         "//tensorflow/compiler/xla/service:hlo_buffer",
         "//tensorflow/compiler/xla/service:shape_inference",
+        "//tensorflow/compiler/xla/service:shaped_buffer",
         "//tensorflow/compiler/xla/service:buffer_assignment",
         "//tensorflow/compiler/xla:array2d",
         "//tensorflow/compiler/xla:literal",

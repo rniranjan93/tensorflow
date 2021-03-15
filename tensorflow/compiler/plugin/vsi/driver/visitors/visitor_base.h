@@ -22,9 +22,11 @@ limitations under the License.
 #include "tensorflow/compiler/xla/service/dfs_hlo_visitor.h"
 #include "tensorflow/compiler/xla/service/hlo_evaluator.h"
 #include "tensorflow/compiler/xla/service/hlo_instruction.h"
+#include "tensorflow/compiler/xla/service/shaped_buffer.h"
 #include "tensorflow/compiler/xla/shape.h"
 #include "tim/vx/context.h"
 #include "tim/vx/graph.h"
+#include "tim/vx/tensor.h"
 #include "tim/vx/types.h"
 namespace xla {
 namespace vsiplugin {
@@ -40,7 +42,7 @@ class BaseVisitor : public DfsHloVisitor {
   BaseVisitor(VsiExecutor* executor) : executor_(executor),
    graph_(executor->getGraph()) {};
 
-  std::shared_ptr<tim::vx::Tensor> converTensorFromShape(const Shape &shape,
+  std::shared_ptr<tim::vx::Tensor> createTensorFromShape(const Shape &shape,
     tim::vx::TensorAttribute attr = tim::vx::TensorAttribute::INPUT){
     tim::vx::ShapeType timShape;
     tim::vx::Quantization timQuant;
@@ -82,7 +84,7 @@ class BaseVisitor : public DfsHloVisitor {
          /*absl::Span<const Literal* const> arg_literals*/);
     
     std::shared_ptr<tim::vx::Tensor> evaluate(const HloComputation& computation,
-        absl::Span<std::shared_ptr<tim::vx::Tensor>> arg_literals);
+        std::vector<Literal>& argument_literals);
 
     Status HandleHloOp(HloInstruction* hlo);
 
@@ -110,9 +112,6 @@ class BaseVisitor : public DfsHloVisitor {
         return it->second;
     }
     const std::shared_ptr<tim::vx::Tensor> GetEvaluatedTensorFor(const HloInstruction* hlo) {
-        // if (hlo->opcode() == HloOpcode::kParameter) {
-        //     return *arg_literals_.at(hlo->parameter_number());
-        // }
         auto it = evaluatedDevMem_.find(hlo);
         CHECK(it != evaluatedDevMem_.end())
             << "could not find evaluated value for: " << hlo->ToString();
@@ -126,6 +125,8 @@ class BaseVisitor : public DfsHloVisitor {
   Status HandleElementwiseBinary(HloInstruction* hlo) override;
 
   Status HandleConstant(HloInstruction* hlo) override;
+
+  Status HandleParameter(HloInstruction* hlo) override;
 
 #define HANDLE_AS_HLO_OP(Name) \
   Status Name(HloInstruction* inst) override { return HandleHloOp(inst); }
@@ -141,7 +142,6 @@ class BaseVisitor : public DfsHloVisitor {
   UNIMPLEMENTED(HandleCollectivePermuteStart)
   UNIMPLEMENTED(HandleCollectivePermuteDone)
   UNIMPLEMENTED(HandleRngBitGenerator)
-  UNIMPLEMENTED(HandleParameter)
   UNIMPLEMENTED(HandleBitcastConvert)
   UNIMPLEMENTED(HandleAllReduce)
   UNIMPLEMENTED(HandleAllGather)
@@ -220,7 +220,7 @@ private:
     //       handle.
     std::unordered_map<const HloInstruction *, Literal> evaluated_;
     std::unordered_map<const HloInstruction *, int> evaluatedDevMem_;
-
+    std::vector<Literal> arg_literals_;
     std::shared_ptr<tim::vx::Graph> graph_;
 };
 

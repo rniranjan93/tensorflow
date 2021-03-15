@@ -56,48 +56,45 @@ StatusOr<ExecutionOutput> VsiExecutable::ExecuteAsyncOnStream(
     std::vector<ExecutionInput> arguments,
     HloExecutionProfile* hlo_execution_profile){
         LOG(INFO) << "Execute " << module().name();
+        se::Stream* stream = run_options->stream();
+        se::StreamExecutor* executor = stream->parent();
+        const se::Platform* platform = executor->platform();
+
         // Convert the ShapeTree to a ShapedBuffer. We do this so we can call
         // TransferManager methods below.
-        // std::vector<ShapedBuffer> argument_buffers;
-        // argument_buffers.reserve(arguments.size());
-        // for (auto& argument : arguments) {
-        //     const ShapeTree<MaybeOwningDeviceMemory>& buffers = argument.Buffers();
-        //     argument_buffers.push_back(ShapedBuffer(buffers.shape(), buffers.shape(),
-        //                                             /*platform=*/nullptr,
-        //                                             /*device_ordinal=*/0));
-        //     auto in_it = buffers.begin();
-        //     auto out_it = argument_buffers.back().buffers().begin();
-        //     for (; in_it != buffers.end(); ++in_it, ++out_it) {
-        //     out_it->second = in_it->second.AsDeviceMemoryBase();
-        //     }
-        // }
+        std::vector<ShapedBuffer> argument_buffers;
+        argument_buffers.reserve(arguments.size());
+        for (auto& argument : arguments) {
+            const ShapeTree<MaybeOwningDeviceMemory>& buffers = argument.Buffers();
+            argument_buffers.push_back(ShapedBuffer(buffers.shape(), buffers.shape(),
+                                                    platform,
+                                                    executor->device_ordinal()));
+            auto in_it = buffers.begin();
+            auto out_it = argument_buffers.back().buffers().begin();
+            for (; in_it != buffers.end(); ++in_it, ++out_it) {
+            out_it->second = in_it->second.AsDeviceMemoryBase();
+            }
+        }
+
         const HloComputation* computation = module().entry_computation();
         if (computation->num_parameters() != arguments.size()) {
             return tensorflow::errors::Internal(
             "Mismatch between argument count and graph parameter count.");
         }
-#if CPU_PATH
-        Literal result_literal = visitor_->evaluate(*computation);
-        se::Stream* stream = run_options->stream();
-        se::StreamExecutor* executor = stream->parent();
-        const se::Platform* platform = executor->platform();
+
         TF_ASSIGN_OR_RETURN(TransferManager * transfer_manager,
-                    TransferManager::GetForPlatform(platform));
-        // Transform the result literal back into a ShapedBuffer.
-        TF_ASSIGN_OR_RETURN(ScopedShapedBuffer result_buffers,
-                      transfer_manager->AllocateScopedShapedBuffer(
-                          result_literal.shape(), run_options->allocator(),
-                          executor->device_ordinal()));
+                      TransferManager::GetForPlatform(platform));
+        // Transform the ShapedBuffer arguments into literals which the evaluator
+        // consumes.
+        std::vector<Literal> arg_literals;
+        for (int64 p = 0; p < computation->num_parameters(); ++p) {
+            TF_ASSIGN_OR_RETURN(Literal arg_literal,
+                                transfer_manager->TransferLiteralFromDevice(
+                                    run_options->stream(), argument_buffers[p]));
+            arg_literals.push_back(std::move(arg_literal));
+        }
 
-        TF_RETURN_IF_ERROR(transfer_manager->TransferLiteralToDevice(
-        run_options->stream(), result_literal, result_buffers));
-        ExecutionOutput result(std::move(result_buffers));
-        return result;
-#else
-        se::Stream* stream = run_options->stream();
-        se::StreamExecutor* executor = stream->parent();
-
-        auto tensor = visitor_->evaluate(*computation, {});
+        auto tensor = visitor_->evaluate(*computation, arg_literals);
         auto root_instr = computation->root_instruction();
         static se::DeviceMemoryBase devMem(tensor.get(),
             ShapeUtil::ByteSizeOf(root_instr->shape()));
@@ -111,7 +108,6 @@ StatusOr<ExecutionOutput> VsiExecutable::ExecuteAsyncOnStream(
         }
         ExecutionOutput result(std::move(shaped_buffer));
         return result;
-#endif
     }
 
 StatusOr<std::vector<ScopedShapedBuffer>> VsiExecutable::ExecuteOnStreams(
