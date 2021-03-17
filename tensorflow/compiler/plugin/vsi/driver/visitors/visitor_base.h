@@ -128,6 +128,8 @@ class BaseVisitor : public DfsHloVisitor {
 
   Status HandleParameter(HloInstruction* hlo) override;
 
+  Status HandleReshape(HloInstruction* hlo) override;
+
 #define HANDLE_AS_HLO_OP(Name) \
   Status Name(HloInstruction* inst) override { return HandleHloOp(inst); }
 
@@ -135,7 +137,10 @@ class BaseVisitor : public DfsHloVisitor {
    * Operations not processed by this visitor.
    */
 #define UNIMPLEMENTED(Name) \
-  Status Name(HloInstruction* inst) override { return Unimplemented(inst); };
+  Status Name(HloInstruction* inst) override { \
+    LOG(INFO)<< "@@ unimplement instruction "<<__FUNCTION__; \
+    return Unimplemented(inst); \
+    };
 
   UNIMPLEMENTED(HandleTupleSelect)
   UNIMPLEMENTED(HandleConvert)
@@ -173,7 +178,7 @@ class BaseVisitor : public DfsHloVisitor {
   UNIMPLEMENTED(HandleReduce)
   UNIMPLEMENTED(HandleBitcast)
   UNIMPLEMENTED(HandleBroadcast)
-  UNIMPLEMENTED(HandleReshape)
+  //UNIMPLEMENTED(HandleReshape)
   UNIMPLEMENTED(HandleTranspose)
   UNIMPLEMENTED(HandleReducePrecision)
   UNIMPLEMENTED(HandleOutfeed)

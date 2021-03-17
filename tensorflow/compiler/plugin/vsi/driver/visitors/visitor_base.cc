@@ -36,6 +36,7 @@ limitations under the License.
 #include "tensorflow/stream_executor/lib/initialize.h"
 #include "tim/vx/operation.h"
 #include "tim/vx/ops/elementwise.h"
+#include "tim/vx/ops/reshape.h"
 
 using tensorflow::str_util::StartsWith;
 
@@ -102,6 +103,23 @@ Status BaseVisitor::FinishVisit(HloInstruction* root){
 Status BaseVisitor::Unimplemented(HloInstruction* inst) {
   return xla::Unimplemented("%s (%s) not implemented", inst->name().c_str(),
                             HloOpcodeString(inst->opcode()).c_str());
+}
+
+Status BaseVisitor::HandleReshape(HloInstruction* hlo){
+    auto shape = hlo->shape();
+    const HloInstruction* input = hlo->operand(0);
+    auto in_tensor = GetEvaluatedTensorFor(input);
+    auto out_tensor = createTensorFromShape(shape, tim::vx::TensorAttribute::OUTPUT);
+
+    std::vector<uint32_t> dims;
+    for(auto d: shape.dimensions()){
+        dims.push_back(d);
+    }
+    auto reshapeOp = graph_->CreateOperation<tim::vx::ops::Reshape>(dims);
+    (*reshapeOp).BindInput(in_tensor).BindOutput(out_tensor);
+
+    evaluatedDevMem_[hlo] = executor_->setTensor(out_tensor);
+    return Status::OK();
 }
 
 Status BaseVisitor::HandleParameter(HloInstruction* hlo){
