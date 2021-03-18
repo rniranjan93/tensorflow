@@ -130,6 +130,10 @@ class BaseVisitor : public DfsHloVisitor {
 
   Status HandleReshape(HloInstruction* hlo) override;
 
+  Status HandleTuple(HloInstruction* hlo) override;
+
+  Status HandleGetTupleElement(HloInstruction* hlo) override;
+
 #define HANDLE_AS_HLO_OP(Name) \
   Status Name(HloInstruction* inst) override { return HandleHloOp(inst); }
 
@@ -150,11 +154,9 @@ class BaseVisitor : public DfsHloVisitor {
   UNIMPLEMENTED(HandleBitcastConvert)
   UNIMPLEMENTED(HandleAllReduce)
   UNIMPLEMENTED(HandleAllGather)
-  UNIMPLEMENTED(HandleGetTupleElement)
   UNIMPLEMENTED(HandleFusion)
   UNIMPLEMENTED(HandleCall)
   UNIMPLEMENTED(HandleCustomCall)
-  UNIMPLEMENTED(HandleTuple)
   UNIMPLEMENTED(HandleMap)
   UNIMPLEMENTED(HandleConditional)
   UNIMPLEMENTED(HandleInfeed)

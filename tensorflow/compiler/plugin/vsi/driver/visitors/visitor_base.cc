@@ -105,6 +105,22 @@ Status BaseVisitor::Unimplemented(HloInstruction* inst) {
                             HloOpcodeString(inst->opcode()).c_str());
 }
 
+// VSI TODO::it is just hack, need to implement
+Status BaseVisitor::HandleGetTupleElement(HloInstruction* hlo){
+    const HloInstruction* input = hlo->operand(0);
+    auto it = evaluatedDevMem_.find(input);
+    evaluatedDevMem_[hlo] = it->second;
+    return Status::OK();
+}
+
+// VSI TODO::it is just hack, need to implement
+Status BaseVisitor::HandleTuple(HloInstruction* hlo){
+    const HloInstruction* input = hlo->operand(0);
+    auto it = evaluatedDevMem_.find(input);
+    evaluatedDevMem_[hlo] = it->second;
+    return Status::OK();
+}
+
 Status BaseVisitor::HandleReshape(HloInstruction* hlo){
     auto shape = hlo->shape();
     const HloInstruction* input = hlo->operand(0);

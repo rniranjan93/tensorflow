@@ -74,7 +74,7 @@ bool VsiExecutor::HostMemoryUnregister(void *mem){
     LOG(FATAL) << "Not Implemented";
 }
 bool VsiExecutor::SynchronizeAllActivity(){
-    LOG(FATAL) << "Not Implemented";
+    return true;
 }
 
 port::Status VsiExecutor::SynchronousMemZero(se::DeviceMemoryBase *location,
