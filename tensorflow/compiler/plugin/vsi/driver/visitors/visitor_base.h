@@ -18,6 +18,8 @@ limitations under the License.
 
 #include <string>
 #include <unordered_map>
+#include <mutex>
+
 #include "tensorflow/compiler/plugin/vsi/driver/vsi_executor.h"
 #include "tensorflow/compiler/xla/service/dfs_hlo_visitor.h"
 #include "tensorflow/compiler/xla/service/hlo_evaluator.h"
@@ -39,26 +41,27 @@ namespace vsiplugin {
  */
 class BaseVisitor : public DfsHloVisitor {
  public:
-  BaseVisitor(VsiExecutor* executor) : executor_(executor),
-   graph_(executor->getGraph()) {};
+    BaseVisitor(VsiExecutor* executor) : executor_(executor),
+    graph_(executor->getGraph()) {};
 
-  std::shared_ptr<tim::vx::Tensor> createTensorFromShape(const Shape &shape,
-    tim::vx::TensorAttribute attr = tim::vx::TensorAttribute::INPUT){
-    tim::vx::ShapeType timShape;
-    tim::vx::Quantization timQuant;
-    if(shape.is_static()){
-        for( auto d : shape.dimensions())
-        timShape.push_back(d);
+    std::shared_ptr<tim::vx::Tensor> createTensorFromShape(const Shape &shape,
+        tim::vx::TensorAttribute attr = tim::vx::TensorAttribute::INPUT){
+        tim::vx::ShapeType timShape;
+        tim::vx::Quantization timQuant;
+        if(shape.is_static()){
+            for( auto d : shape.dimensions())
+            timShape.push_back(d);
+        }
+        auto type = convertTfPrimitiveTypeToTim(shape.element_type());
+        if(type != tim::vx::DataType::FLOAT32 &&
+            type != tim::vx::DataType::FLOAT16) {
+                LOG(FATAL)<< "NOT implement";
+            }
+        std::unique_lock<std::mutex> lock(mutex_);
+        tim::vx::TensorSpec timSpec(type, timShape,
+                    attr, timQuant);
+        return graph_->CreateTensor(timSpec);
     }
-    auto type = convertTfPrimitiveTypeToTim(shape.element_type());
-    if(type != tim::vx::DataType::FLOAT32 &&
-       type != tim::vx::DataType::FLOAT16) {
-         LOG(FATAL)<< "NOT implement";
-       }
-    tim::vx::TensorSpec timSpec(type, timShape,
-                attr, timQuant);
-    return graph_->CreateTensor(timSpec);
-  }
 
   static tim::vx::DataType convertTfPrimitiveTypeToTim(xla::PrimitiveType xlaType){
       switch(xlaType){
@@ -225,8 +228,9 @@ private:
     // Parameters and constants aren't stored here,
     // TODO: it is better the Literal value was repalced with device memory
     //       handle.
-    std::unordered_map<const HloInstruction *, Literal> evaluated_;
-    std::unordered_map<const HloInstruction *, int> evaluatedDevMem_;
+    std::mutex mutex_;
+    std::unordered_map<const HloInstruction *, Literal> evaluated_ TF_GUARDED_BY(mutex_);
+    std::unordered_map<const HloInstruction *, int> evaluatedDevMem_ TF_GUARDED_BY(mutex_);
     std::vector<Literal> arg_literals_;
     std::shared_ptr<tim::vx::Graph> graph_;
 };

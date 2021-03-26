@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_COMPILER_PLUGIN_VSI_DRIVER_VSI_EXECUTOR_H_
 
 #include <unordered_map>
+#include <mutex>
 
 #include "tensorflow/stream_executor/stream_executor.h" 
 #include "tensorflow/stream_executor/stream_executor_internal.h"
@@ -32,6 +33,7 @@ namespace se = stream_executor;
 namespace xla{
 namespace vsiplugin{
 
+extern const int invalid_index;
 namespace port = se::port;
 
 using Timer = ::se::Timer;
@@ -53,8 +55,19 @@ public:
         }
         return kVsiTensorContainer[index];
     }
+    int getTensorIndex(tim::vx::Tensor *t){
+        auto it = std::find_if(kVsiTensorContainer.begin(), kVsiTensorContainer.end(),
+        [&](std::shared_ptr<tim::vx::Tensor> p){
+            return p.get() == t;
+        });
+        if(it != kVsiTensorContainer.end()){
+            return it - kVsiTensorContainer.begin();
+        }
+        return invalid_index;
+    }
 
     int setTensor(std::shared_ptr<tim::vx::Tensor> t){
+        std::unique_lock<std::mutex> lock(mutex_);
         kVsiTensorContainer.push_back(t);
         return kVsiTensorContainer.size() - 1;
     }
@@ -183,11 +196,12 @@ public:
     }
 
 private:
+    std::mutex mutex_;
     int ordinal_;
     se::PluginConfig plugConfig_;
     std::shared_ptr<tim::vx::Context> kVsiContext;
-    std::unordered_map<int, std::shared_ptr<tim::vx::Graph>> kVsiGraphContainer;
-    std::vector<std::shared_ptr<tim::vx::Tensor>> kVsiTensorContainer;
+    std::unordered_map<int, std::shared_ptr<tim::vx::Graph>> kVsiGraphContainer TF_GUARDED_BY(mutex_);
+    std::vector<std::shared_ptr<tim::vx::Tensor>> kVsiTensorContainer TF_GUARDED_BY(mutex_);
     SE_DISALLOW_COPY_AND_ASSIGN(VsiExecutor);
 };
 

@@ -98,7 +98,6 @@ StatusOr<ExecutionOutput> VsiExecutable::ExecuteAsyncOnStream(
         auto root_instr = computation->root_instruction();
         static se::DeviceMemoryBase devMem(tensor.get(),
             ShapeUtil::ByteSizeOf(root_instr->shape()));
-        LOG(INFO) << "Result tensor ptr = " << tensor.get();
 
         ScopedShapedBuffer shaped_buffer( root_instr->shape(),  root_instr->shape(),
                                         run_options->allocator(), executor->device_ordinal());

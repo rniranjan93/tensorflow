@@ -25,8 +25,11 @@ limitations under the License.
 namespace xla{
 namespace vsiplugin{
 
+const int invalid_index = 0x7fffff;
+
 VsiExecutor::VsiExecutor(std::shared_ptr<tim::vx::Context>vsiCtx, const int device_ordinal, se::PluginConfig pluginConfig)
  : kVsiContext(vsiCtx), ordinal_(device_ordinal), plugConfig_(pluginConfig) {
+     std::unique_lock<std::mutex> lock(mutex_);
      kVsiGraphContainer[ordinal_] = kVsiContext->CreateGraph();
  }
 
@@ -35,12 +38,11 @@ VsiExecutor::~VsiExecutor() {}
 //TODO: temprarily use 1d tensor
 se::DeviceMemoryBase VsiExecutor::Allocate(uint64 size, int64 memory_space){
     tim::vx::ShapeType input_shape({size});
-    tim::vx::Quantization input_quant(tim::vx::QuantType::ASYMMETRIC, 1.0f,
-                                        0);
+    tim::vx::Quantization input_quant(tim::vx::QuantType::ASYMMETRIC, 1.0f, 0);
     tim::vx::TensorSpec input_spec(tim::vx::DataType::UINT8, input_shape,
                                     tim::vx::TensorAttribute::VARIABLE, input_quant);
+    std::unique_lock<std::mutex> lock(mutex_);
     kVsiTensorContainer.push_back( kVsiGraphContainer[ordinal_]->CreateTensor(input_spec) );
-    LOG(INFO)<<" allocat ptx" <<kVsiTensorContainer.back().get();
     return se::DeviceMemoryBase( kVsiTensorContainer.back().get(), size);
 }
 
@@ -51,7 +53,7 @@ void *VsiExecutor::GetSubBuffer(se::DeviceMemoryBase *parent, uint64 offset, uin
 
 void VsiExecutor::Deallocate(se::DeviceMemoryBase *mem) {
     auto t = static_cast<tim::vx::Tensor*>(mem->opaque());
-
+    std::unique_lock<std::mutex> lock(mutex_);
     for(auto it = kVsiTensorContainer.begin(); it != kVsiTensorContainer.end(); it++){
         if(it->get() == t){
             it = kVsiTensorContainer.erase(it);
@@ -133,6 +135,7 @@ bool VsiExecutor::Memcpy(se::Stream *stream, se::DeviceMemoryBase *gpu_dst,
     AsVsiStream(stream)->BlockUntilDone();
     return true;
 }
+
 bool VsiExecutor::MemcpyDeviceToDevice(se::Stream *stream, se::DeviceMemoryBase *gpu_dst,
                             const se::DeviceMemoryBase &gpu_src,
                             uint64 size){

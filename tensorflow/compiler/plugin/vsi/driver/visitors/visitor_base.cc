@@ -122,6 +122,7 @@ Status BaseVisitor::HandleTuple(HloInstruction* hlo){
 }
 
 Status BaseVisitor::HandleReshape(HloInstruction* hlo){
+    LOG(INFO) << "PROCESS " << __FUNCTION__;
     auto shape = hlo->shape();
     const HloInstruction* input = hlo->operand(0);
     auto in_tensor = GetEvaluatedTensorFor(input);
@@ -140,7 +141,7 @@ Status BaseVisitor::HandleReshape(HloInstruction* hlo){
 
 Status BaseVisitor::HandleParameter(HloInstruction* hlo){
     CHECK_LT(hlo->parameter_number(), arg_literals_.size());
-
+    LOG(INFO) << "PROCESS " << __FUNCTION__;
     auto& input_literal = arg_literals_[hlo->parameter_number()];
     VLOG(2) << "Parameter evaluated to: " << input_literal.ToString();
     DCHECK(Shape::Equal().MinorToMajorOnlyInLayout()(hlo->shape(),
@@ -163,12 +164,13 @@ Status BaseVisitor::HandleParameter(HloInstruction* hlo){
 Status BaseVisitor::HandleConstant(HloInstruction* hlo){
     LOG(INFO) << "PROCESS Constant";
     if(evaluatedDevMem_.find(hlo) == evaluatedDevMem_.end()){
-        auto& literal = hlo->literal();
-
         ShapeIndex shapeIndex({});
+
+        auto& literal = hlo->literal();
         const float* buffer = literal.data<float>(shapeIndex).data();
         auto timTensor = createTensorFromShape(literal.shape());
         timTensor->CopyDataToTensor((void *)buffer);
+
         evaluatedDevMem_[hlo] = executor_->setTensor(timTensor);
     }
 
