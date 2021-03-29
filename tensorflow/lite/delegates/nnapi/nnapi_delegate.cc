@@ -303,7 +303,9 @@ bool NeedInt8Conversion(const TfLiteContext* context, int builtin_code,
     case kTfLiteBuiltinTanh:
     case kTfLiteBuiltinTile:
     case kTfLiteBuiltinTopkV2:
-    case kTfLiteBuiltinTranspose: {
+    case kTfLiteBuiltinTranspose:
+    case kTfLiteBuiltinDequantize:
+    case kTfLiteBuiltinTransposeConv: {
       return input_type == kTfLiteInt8;
     }
     default:
@@ -3087,13 +3089,30 @@ TfLiteStatus NNAPIDelegateKernel::Map(
             input_tensor.params.scale * filter_tensor.params.scale,
             /*zero_point=*/0);
       }
-
+#define TFLITE_USE_EXPLICIT_PADDING_CONV_TRANSP 1
+#if not TFLITE_USE_EXPLICIT_PADDING_CONV_TRANSP
       mapping_args.builder->AddTensorInput(
           mapping_args.node->inputs->data[/*kOutputShapeTensor*/ 0], hybrid_op);
+#else
+#endif
 
       auto builtin = reinterpret_cast<TfLiteTransposeConvParams*>(
           mapping_args.node->builtin_data);
+#if not TFLITE_USE_EXPLICIT_PADDING_CONV_TRANSP
       mapping_args.builder->AddScalarInt32Operand(builtin->padding);
+#else
+      const auto& weights_tensor = context->tensors[weight_tensor_id];
+      int32_t w_height = weights_tensor.dims->data[1];
+      int32_t w_width = weights_tensor.dims->data[2];
+      int32_t p_left = (w_width - builtin->stride_width)/2;
+      int32_t p_right = w_width - builtin->stride_width - p_left;
+      int32_t p_top = (w_height - builtin->stride_height)/2;
+      int32_t p_bottom = w_height - builtin->stride_height - p_top;
+      mapping_args.builder->AddScalarInt32Operand(p_left);
+      mapping_args.builder->AddScalarInt32Operand(p_right);
+      mapping_args.builder->AddScalarInt32Operand(p_top);
+      mapping_args.builder->AddScalarInt32Operand(p_bottom);
+#endif
       mapping_args.builder->AddScalarInt32Operand(builtin->stride_width);
       mapping_args.builder->AddScalarInt32Operand(builtin->stride_height);
       mapping_args.builder->AddScalarInt32Operand(
