@@ -53,10 +53,6 @@ class BaseVisitor : public DfsHloVisitor {
             timShape.push_back(d);
         }
         auto type = convertTfPrimitiveTypeToTim(shape.element_type());
-        if(type != tim::vx::DataType::FLOAT32 &&
-            type != tim::vx::DataType::FLOAT16) {
-                LOG(FATAL)<< "NOT implement";
-            }
         std::unique_lock<std::mutex> lock(mutex_);
         tim::vx::TensorSpec timSpec(type, timShape,
                     attr, timQuant);
@@ -68,14 +64,26 @@ class BaseVisitor : public DfsHloVisitor {
         case S8:{
           return tim::vx::DataType::INT8;
         }
+        case U8:{
+          return tim::vx::DataType::UINT8;
+        }
         case S16:{
           return tim::vx::DataType::INT16;
+        }
+        case U16:{
+          return tim::vx::DataType::UINT16;
         }
         case S32:{
           return tim::vx::DataType::INT32;
         }
+        case U32:{
+          return tim::vx::DataType::UINT32;
+        }
         case F32:{
           return tim::vx::DataType::FLOAT32;
+        }
+        case F16:{
+          return tim::vx::DataType::FLOAT16;
         }
         default:
           LOG(FATAL)<<"not supported datat type";
