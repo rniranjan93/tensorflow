@@ -48,9 +48,9 @@ class BaseVisitor : public DfsHloVisitor {
         tim::vx::TensorAttribute attr = tim::vx::TensorAttribute::INPUT){
         tim::vx::ShapeType timShape;
         tim::vx::Quantization timQuant;
-        if(shape.is_static()){
-            for( auto d : shape.dimensions())
-            timShape.push_back(d);
+        if(shape.is_static() && shape.has_layout()){
+            for( auto d : shape.layout().minor_to_major())
+              timShape.push_back(shape.dimensions(d));
         }
         auto type = convertTfPrimitiveTypeToTim(shape.element_type());
         std::unique_lock<std::mutex> lock(mutex_);
