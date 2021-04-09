@@ -37,6 +37,7 @@ limitations under the License.
 #include "tim/vx/operation.h"
 #include "tim/vx/ops/elementwise.h"
 #include "tim/vx/ops/reshape.h"
+#include "tim/vx/ops/transpose.h"
 
 using tensorflow::str_util::StartsWith;
 
@@ -121,6 +122,25 @@ Status BaseVisitor::HandleTuple(HloInstruction* hlo){
     return Status::OK();
 }
 
+Status BaseVisitor::HandleTranspose(HloInstruction* transpose){
+    LOG(INFO) << "PROCESS " << __FUNCTION__;
+    const HloInstruction* input = transpose->operand(0);
+    auto in_tensor = GetEvaluatedTensorFor(input);
+    auto out_shape = transpose->shape();
+    auto out_tensor = createTensorFromShape(out_shape, tim::vx::TensorAttribute::OUTPUT);
+
+    std::vector<uint32_t> dims;
+    for(auto d: transpose->dimensions()){
+        dims.push_back(d);
+    }
+    auto transposeOp = graph_->CreateOperation<tim::vx::ops::Transpose>(dims);
+    transposeOp->BindInput(in_tensor).BindOutput(out_tensor);
+
+    auto vx_graph = graph_.get();
+    evaluatedDevMem_[transpose] = executor_->setTensor(out_tensor);
+    return Status::OK();
+}
+
 Status BaseVisitor::HandleReshape(HloInstruction* hlo){
     LOG(INFO) << "PROCESS " << __FUNCTION__;
     auto shape = hlo->shape();
@@ -161,6 +181,7 @@ Status BaseVisitor::HandleParameter(HloInstruction* hlo){
 
     return Status::OK();
 }
+
 Status BaseVisitor::HandleConstant(HloInstruction* hlo){
     LOG(INFO) << "PROCESS Constant";
     if(evaluatedDevMem_.find(hlo) == evaluatedDevMem_.end()){
