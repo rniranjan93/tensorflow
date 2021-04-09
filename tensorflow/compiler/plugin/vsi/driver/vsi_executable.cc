@@ -96,11 +96,16 @@ StatusOr<ExecutionOutput> VsiExecutable::ExecuteAsyncOnStream(
 
         auto tensor = visitor_->evaluate(*computation, arg_literals);
         auto root_instr = computation->root_instruction();
-        static se::DeviceMemoryBase devMem(tensor.get(),
+        se::DeviceMemoryBase devMem(tensor.get(),
             ShapeUtil::ByteSizeOf(root_instr->shape()));
 
-        ScopedShapedBuffer shaped_buffer( root_instr->shape(),  root_instr->shape(),
-                                        run_options->allocator(), executor->device_ordinal());
+        /*for vsi, memory layout always is dim 0 as major */
+        auto shape = root_instr->shape();
+        *shape.mutable_layout() = LayoutUtil::GetDefaultLayoutForRank(root_instr->shape().rank());
+
+        ScopedShapedBuffer shaped_buffer(shape, shape,
+            run_options->allocator(), executor->device_ordinal());
+
         const ShapeIndex shapeIndex;
         for(auto& pair : shaped_buffer.buffers()){
             pair.second = devMem;
