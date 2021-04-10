@@ -129,10 +129,22 @@ Status BaseVisitor::HandleTranspose(HloInstruction* transpose){
     auto out_shape = transpose->shape();
     auto out_tensor = createTensorFromShape(out_shape, tim::vx::TensorAttribute::OUTPUT);
 
-    std::vector<uint32_t> dims;
-    for(auto d: transpose->dimensions()){
-        dims.push_back(d);
+    std::vector<uint32_t> tmpdims;
+    auto input_minor_to_major = input->shape().layout().minor_to_major();
+    for(auto d: input_minor_to_major){
+        tmpdims.push_back(transpose->dimensions(d));
     }
+
+    std::vector<uint32_t> dims;
+    for(auto d: tmpdims){
+        uint32 i = 0;
+        for(i = 0; i < input_minor_to_major.size(); i++){
+            if(input_minor_to_major[i] == d)
+            break;
+        }
+        dims.push_back(i);
+    }
+
     auto transposeOp = graph_->CreateOperation<tim::vx::ops::Transpose>(dims);
     transposeOp->BindInput(in_tensor).BindOutput(out_tensor);
 
