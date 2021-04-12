@@ -92,14 +92,16 @@ port::Status VsiExecutor::SynchronousMemSet(se::DeviceMemoryBase *location, int 
 port::Status VsiExecutor::SynchronousMemcpy(se::DeviceMemoryBase *gpu_dst,
                                 const void *host_src, uint64 size){
     auto t = static_cast<tim::vx::Tensor *>(gpu_dst->opaque());
-    t->CopyDataToTensor(host_src, size);
+    if(t != nullptr && size > 0)
+        t->CopyDataToTensor(host_src, size);
     return port::Status::OK();
 }
 port::Status VsiExecutor::SynchronousMemcpy(void *host_dst,
                                 const se::DeviceMemoryBase &gpu_src,
                                 uint64 size){
     auto t = static_cast<tim::vx::Tensor*>(const_cast<void *>(gpu_src.opaque()));
-    t->CopyDataFromTensor(host_dst);
+    if(t != nullptr && size > 0)
+        t->CopyDataFromTensor(host_dst);
     return port::Status::OK();
 }
 port::Status VsiExecutor::SynchronousMemcpyDeviceToDevice(
