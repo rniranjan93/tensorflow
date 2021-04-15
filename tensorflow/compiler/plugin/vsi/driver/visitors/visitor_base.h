@@ -59,6 +59,20 @@ class BaseVisitor : public DfsHloVisitor {
         return graph_->CreateTensor(timSpec);
     }
 
+    std::shared_ptr<tim::vx::Tensor> createTensorFromShape(tim::vx::DataType dataType,
+        std::vector<uint32_t> shape,
+        tim::vx::TensorAttribute attr = tim::vx::TensorAttribute::INPUT){
+        tim::vx::ShapeType timShape;
+        tim::vx::Quantization timQuant;
+        for( auto d : shape)
+          timShape.push_back(d);
+
+        std::unique_lock<std::mutex> lock(mutex_);
+        tim::vx::TensorSpec timSpec(dataType, timShape,
+                    attr, timQuant);
+        return graph_->CreateTensor(timSpec);
+    }
+
   static tim::vx::DataType convertTfPrimitiveTypeToTim(xla::PrimitiveType xlaType){
       switch(xlaType){
         case S8:{
@@ -89,6 +103,11 @@ class BaseVisitor : public DfsHloVisitor {
           LOG(FATAL)<<"not supported datat type";
       }
   }
+
+  /*dim_index: store the demension index info of the $hlo$ as order major_to_minor: {N, C, ..... }
+    if it should be inserted a transpose, its output would be returned.*/
+  std::shared_ptr<tim::vx::Tensor> insertTranspose(const HloInstruction *hlo, std::vector<uint32_t> &dim_index);
+
   virtual const Shape& GetOutputShape(HloInstruction*) const;
 
     Literal evaluate(const HloComputation& computation
@@ -122,6 +141,7 @@ class BaseVisitor : public DfsHloVisitor {
             << "could not find evaluated value for: " << hlo->ToString();
         return it->second;
     }
+
     const std::shared_ptr<tim::vx::Tensor> GetEvaluatedTensorFor(const HloInstruction* hlo) {
         auto it = evaluatedDevMem_.find(hlo);
         CHECK(it != evaluatedDevMem_.end())
@@ -146,6 +166,8 @@ class BaseVisitor : public DfsHloVisitor {
   Status HandleTuple(HloInstruction* hlo) override;
 
   Status HandleGetTupleElement(HloInstruction* hlo) override;
+
+  Status HandleConvolution(HloInstruction* hlo) override;
 
 #define HANDLE_AS_HLO_OP(Name) \
   Status Name(HloInstruction* inst) override { return HandleHloOp(inst); }
@@ -219,7 +241,6 @@ class BaseVisitor : public DfsHloVisitor {
   UNIMPLEMENTED(HandleCopyDone)
   UNIMPLEMENTED(HandleSetDimensionSize)
   UNIMPLEMENTED(HandleDot)
-  UNIMPLEMENTED(HandleConvolution)
   UNIMPLEMENTED(HandleReduceWindow)
 
  protected:

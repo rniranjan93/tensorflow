@@ -35,6 +35,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/stream_executor/lib/initialize.h"
 #include "tim/vx/operation.h"
+#include "tim/vx/ops/conv2d.h"
 #include "tim/vx/ops/elementwise.h"
 #include "tim/vx/ops/reshape.h"
 #include "tim/vx/ops/transpose.h"
@@ -68,6 +69,48 @@ std::shared_ptr<tim::vx::Tensor> BaseVisitor::evaluate(
 
 const Shape& BaseVisitor::GetOutputShape(HloInstruction* inst) const {
   return inst->shape();
+}
+
+/*the function should only be used by Handlexxxxx function so that the tensor maped to {$/hlo/$} has been created.
+  the order of tensor's layout is the same as its shape: minjor to major   */
+std::shared_ptr<tim::vx::Tensor> BaseVisitor::insertTranspose(const HloInstruction *hlo, std::vector<uint32_t> &dim_index){
+    auto shape = hlo->shape();
+    size_t dim_size = dim_index.size();
+    std::vector<int64_t> output_dims(dim_size, 1);
+    std::vector<uint32_t> perm(dim_size, 1);
+
+    auto input_tensor = GetEvaluatedTensorFor(hlo);
+
+    /*check if the shape is {WHCN} , if not, a transpose would be inserted to covert the layout. */
+    bool is_need_insert_transpose = false;
+    for(int i = 0; i < dim_size; i++){
+        if(dim_index[i] == shape.layout().minor_to_major()[dim_size - i - 1]){
+            perm[dim_size - 1 - i] = dim_size - i - 1;
+        }else{
+            is_need_insert_transpose = true;
+            for(int j = 0; j < dim_size; j++){
+                if(dim_index[i] != shape.layout().minor_to_major()[j])
+                    continue;
+                perm[dim_size - 1 - i] = j;
+                break;
+            }
+        }
+    }
+    if(is_need_insert_transpose){
+        auto input_shape = input_tensor->GetShape();
+        std::vector<uint32_t> output_shape;
+        for(auto d : perm){
+            output_shape.push_back(input_shape[d]);
+        }
+        auto output_tensor = createTensorFromShape(
+            convertTfPrimitiveTypeToTim(hlo->shape().element_type()), output_shape,
+            tim::vx::TensorAttribute::OUTPUT);
+        auto transposeOp = graph_->CreateOperation<tim::vx::ops::Transpose>(perm);
+        transposeOp->BindInput(input_tensor).BindOutput(output_tensor);
+
+        return output_tensor;
+    }
+    return input_tensor;
 }
 
 Status BaseVisitor::HandleElementwiseBinary(HloInstruction* hlo){
@@ -125,8 +168,16 @@ Status BaseVisitor::HandleTuple(HloInstruction* hlo){
 Status BaseVisitor::HandleTranspose(HloInstruction* transpose){
     LOG(INFO) << "PROCESS " << __FUNCTION__;
     const HloInstruction* input = transpose->operand(0);
+    const Shape& in_shape = input->shape();
+    const Shape& out_shape = transpose->shape();
+
+    TF_CHECK_OK(ShapeUtil::ValidateShape(in_shape));
+    TF_CHECK_OK(ShapeUtil::ValidateShape(out_shape));
+    CHECK(ShapeUtil::SameElementType(in_shape, out_shape));
+    CHECK_EQ(transpose->dimesions().size(), in_shape.rank());
+    CHECK_EQ(in_shape.rank(), out_shape.rank());
+
     auto in_tensor = GetEvaluatedTensorFor(input);
-    auto out_shape = transpose->shape();
     auto out_tensor = createTensorFromShape(out_shape, tim::vx::TensorAttribute::OUTPUT);
 
     std::vector<uint32_t> tmpdims;
@@ -148,7 +199,6 @@ Status BaseVisitor::HandleTranspose(HloInstruction* transpose){
     auto transposeOp = graph_->CreateOperation<tim::vx::ops::Transpose>(dims);
     transposeOp->BindInput(in_tensor).BindOutput(out_tensor);
 
-    auto vx_graph = graph_.get();
     evaluatedDevMem_[transpose] = executor_->setTensor(out_tensor);
     return Status::OK();
 }
@@ -207,6 +257,77 @@ Status BaseVisitor::HandleConstant(HloInstruction* hlo){
         evaluatedDevMem_[hlo] = executor_->setTensor(timTensor);
     }
 
+    return Status::OK();
+}
+
+Status BaseVisitor::HandleConvolution(HloInstruction* conv) {
+    LOG(INFO) << "PROCESS " << __FUNCTION__;
+
+    auto lhs = conv->operand(0);
+    auto rhs = conv->operand(1);
+    const auto& window = conv->window();
+    const Shape& result_shape = conv->shape();
+    const Shape& lhs_shape = lhs->shape();
+    const Shape& rhs_shape = rhs->shape();
+
+    TF_CHECK_OK(ShapeUtil::ValidateShape(lhs_shape));
+    TF_CHECK_OK(ShapeUtil::ValidateShape(rhs_shape));
+    CHECK(lhs_shape.IsArray());
+    CHECK(rhs_shape.IsArray());
+    CHECK(ShapeUtil::SameElementType(lhs_shape, rhs_shape));
+    CHECK(ShapeUtil::SameElementType(lhs_shape, result_shape));
+
+    const auto& dnums = conv->convolution_dimension_numbers();
+    const int64 num_spatial_dims = dnums.output_spatial_dimensions_size();
+    CHECK_EQ(num_spatial_dims, dnums.input_spatial_dimensions_size());
+    CHECK_EQ(num_spatial_dims, dnums.kernel_spatial_dimensions_size());
+    CHECK_EQ(num_spatial_dims, 2); /*vsi requirement*/
+    CHECK_GE(num_spatial_dims, 0);
+    CHECK_EQ(window.dimensions_size(), num_spatial_dims);
+
+    const auto lhs_rank = lhs_shape.rank();
+    const auto rhs_rank = rhs_shape.rank();
+    CHECK_EQ(num_spatial_dims + 2, lhs_rank);
+    CHECK_EQ(num_spatial_dims + 2, rhs_rank);
+
+    TF_ASSIGN_OR_RETURN(auto inferred_return_shape,
+                        ShapeInference::InferConvolveShape(
+                            lhs_shape, rhs_shape, conv->feature_group_count(),
+                            conv->batch_group_count(), window, dnums));
+    CHECK(ShapeUtil::Compatible(result_shape, inferred_return_shape))
+        << "return shape set to: " << ShapeUtil::HumanString(result_shape)
+        << " but is inferred to be: "
+        << ShapeUtil::HumanString(inferred_return_shape);
+
+    // prepare parameter for vsi.
+    std::vector<uint32_t> input_dim;
+    input_dim.push_back(dnums.input_batch_dimension());
+    input_dim.push_back(dnums.input_feature_dimension());
+
+    std::vector<uint32_t> weight_dim;
+    weight_dim.push_back(dnums.kernel_output_feature_dimension());
+    weight_dim.push_back(dnums.kernel_input_feature_dimension());
+    for(size_t i = 2; i < lhs_rank; i++){
+        input_dim.push_back(dnums.input_spatial_dimensions(i - 2));
+        weight_dim.push_back(dnums.kernel_spatial_dimensions(i - 2));
+    }
+
+    /*prepare input and weight that whose shape is WHCN, layout minor to major:{0,1,2,3}*/
+    auto input = insertTranspose(lhs, input_dim);
+    auto weight = insertTranspose(rhs, weight_dim);
+
+    std::array<uint32_t, 2> ksize = {window.dimensions(1).size(), window.dimensions(0).size()};
+    std::array<uint32_t, 2> stride = {window.dimensions(1).stride(), window.dimensions(0).stride()};
+    std::array<uint32_t, 2> dilation = {window.dimensions(1).window_dilation(), window.dimensions(0).window_dilation()};
+    std::array<uint32_t, 4> pad = {window.dimensions(1).padding_low(), window.dimensions(1).padding_high(),
+            window.dimensions(0).padding_low(), window.dimensions(0).padding_high()};
+    auto convOp = graph_->CreateOperation<tim::vx::ops::Conv2d>(dnums.kernel_output_feature_dimension(),
+                                tim::vx::PadType::AUTO, ksize, stride, dilation, pad);
+
+    auto out_tensor = createTensorFromShape(conv->shape(), tim::vx::TensorAttribute::OUTPUT);
+    convOp->BindInput(input).BindInput(weight).BindOutput(out_tensor);
+
+    evaluatedDevMem_[conv] = executor_->setTensor(out_tensor);
     return Status::OK();
 }
 }  // namespace poplarplugin
