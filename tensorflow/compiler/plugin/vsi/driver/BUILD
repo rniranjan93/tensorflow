@@ -17,6 +17,27 @@ cc_library(
 )
 
 cc_library(
+    name = "vsi_pass",
+    srcs = ["passes/InsertTranspose.cc"],
+    hdrs = ["passes/InsertTranspose.h"],
+    deps = [
+        "//tensorflow/compiler/xla/service:hlo",
+        "//tensorflow/compiler/xla/service:hlo_pass",
+        "//tensorflow/compiler/xla/service:shape_inference",
+        "//tensorflow/compiler/xla:xla_data_proto_cc",
+        "//tensorflow/compiler/xla:literal",
+        "//tensorflow/compiler/xla:literal_util",
+        "//tensorflow/compiler/xla:shape_util",
+        "//tensorflow/compiler/xla:status_macros",
+        "//tensorflow/compiler/xla:types",
+        "//tensorflow/compiler/xla:util",
+        "//tensorflow/core:lib",
+        "@com_google_absl//absl/types:optional",
+        "@com_google_absl//absl/types:span",
+        ],
+)
+
+cc_library(
     name = "vsi_compiler",
     srcs = ["vsi_compiler.cc"],
     hdrs = ["vsi_compiler.h"],
@@ -208,6 +229,7 @@ cc_library(
         ":vsi_platform",
         "vsi_compiler",
         "vsi_transfer_manager",
+        ":visitor_base",
         "//tensorflow/core:stream_executor_no_cuda",
     ],
 )
