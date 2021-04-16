@@ -43,6 +43,7 @@ cc_library(
     hdrs = ["vsi_compiler.h"],
     deps = [
         ":vsi_executable",
+        "vsi_pass",
         ":vsi_platform_id",
         "vsi_platform",
         "//tensorflow/compiler/xla:status",

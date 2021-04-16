@@ -40,6 +40,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/platform/types.h"
 
+#include "tensorflow/compiler/plugin/vsi/driver/passes/InsertTranspose.h"
 #include "tensorflow/compiler/plugin/vsi/driver/vsi_platform.h"
 #include "tensorflow/compiler/plugin/vsi/driver/vsi_platform_id.h"
 #include "tensorflow/compiler/plugin/vsi/driver/vsi_executable.h"
@@ -51,8 +52,12 @@ namespace vsiplugin {
 StatusOr<std::unique_ptr<HloModule>> VsiCompiler::RunHloPasses(
     std::unique_ptr<HloModule> hlo_module, se::StreamExecutor* stream_exec,
     se::DeviceMemoryAllocator* device_allocator) {
-        return hlo_module;
-    }
+    HloPassPipeline pipeline("vsi-npu-pass");
+    pipeline.AddPass<InsertTranspose>();
+    pipeline.Run(hlo_module.get());
+
+    return std::move(hlo_module);
+}
 
 StatusOr<std::unique_ptr<Executable>> VsiCompiler::RunBackend(
     std::unique_ptr<HloModule> hlo_module, se::StreamExecutor* stream_exec,
@@ -100,7 +105,14 @@ StatusOr<std::vector<std::unique_ptr<AotCompilationResult>>>
 VsiCompiler::CompileAheadOfTime(std::unique_ptr<HloModuleGroup> module_group,
                     const AotCompilationOptions& aot_options) {}
 
-HloCostAnalysis::ShapeSizeFunction VsiCompiler::ShapeSizeBytesFunction() const {}
+HloCostAnalysis::ShapeSizeFunction VsiCompiler::ShapeSizeBytesFunction() const {
+    return [](const Shape& shape) -> int64_t{
+        if (shape.IsOpaque()) {
+            return sizeof(void*);
+        }
+        return ShapeUtil::ByteSizeOf(shape, sizeof(void*));
+    };
+}
 
 se::Platform::Id VsiCompiler::PlatformId() const { return xla::vsiplugin::kVsiPlatformId; }
 

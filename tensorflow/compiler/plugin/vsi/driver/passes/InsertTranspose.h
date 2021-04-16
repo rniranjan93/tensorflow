@@ -26,12 +26,16 @@ namespace vsiplugin {
  * each one of them, it insert a transpose instruction in front of them.
  */
 class InsertTranspose : public HloModulePass {
+public:
     InsertTranspose() {}
     ~InsertTranspose() = default;
     absl::string_view name() const override { return "insert-transpose"; }
     StatusOr<bool> Run(HloModule* module) override;
 private:
     StatusOr<bool> InsertTransposeForConv(HloInstruction *conv);
+    HloInstruction* repalceConvWithNew(HloInstruction *oldCconv,
+                    HloInstruction *input, HloInstruction *weight);
+    HloInstruction* insertTransposeforHlo(HloInstruction *hlo, std::vector<int64> &dim_index);
 };
 
 }  // namespace vsiplugin

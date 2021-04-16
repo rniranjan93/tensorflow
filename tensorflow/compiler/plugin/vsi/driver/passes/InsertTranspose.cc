@@ -14,7 +14,9 @@ limitations under the License.
 ==============================================================================*/
 
 #include "tensorflow/compiler/plugin/vsi/driver/passes/InsertTranspose.h"
+#include "tensorflow/compiler/xla/layout.h"
 #include "tensorflow/compiler/xla/service/hlo_instruction.h"
+#include "tensorflow/compiler/xla/service/hlo_instructions.h"
 #include "tensorflow/compiler/xla/service/hlo_module.h"
 #include "tensorflow/compiler/xla/service/shape_inference.h"
 
@@ -74,11 +76,11 @@ StatusOr<bool> InsertTranspose::InsertTransposeForConv(HloInstruction *conv){
         << " but is inferred to be: "
         << ShapeUtil::HumanString(inferred_return_shape);
 
-    std::vector<uint32_t> input_dim;
+    std::vector<int64> input_dim;
     input_dim.push_back(dnums.input_batch_dimension());
     input_dim.push_back(dnums.input_feature_dimension());
 
-    std::vector<uint32_t> weight_dim;
+    std::vector<int64> weight_dim;
     weight_dim.push_back(dnums.kernel_output_feature_dimension());
     weight_dim.push_back(dnums.kernel_input_feature_dimension());
     for(size_t i = 2; i < lhs_rank; i++){
@@ -86,6 +88,109 @@ StatusOr<bool> InsertTranspose::InsertTransposeForConv(HloInstruction *conv){
         weight_dim.push_back(dnums.kernel_spatial_dimensions(i - 2));
     }
 
+    auto input_instr = insertTransposeforHlo(conv->mutable_operand(0), input_dim);
+    auto weight_instr = insertTransposeforHlo(conv->mutable_operand(1), weight_dim);
+    auto newConv = repalceConvWithNew(conv, input_instr, weight_instr);
+
+    return newConv != nullptr;
 }
+
+HloInstruction* InsertTranspose::repalceConvWithNew(HloInstruction *oldConv,
+                    HloInstruction *input, HloInstruction *weight){
+    ConvolutionDimensionNumbers dim_numbers = oldConv->convolution_dimension_numbers();
+    /*the layout of the new instruction created by insertTransposeforHlo, is:
+    ** input:  {N C H W ....}
+    ** weight: {O I H W ...}*/
+
+    auto input_shape = input->shape();
+    auto input_layout_minor_to_major = input_shape.layout().minor_to_major();
+    dim_numbers.set_input_batch_dimension(
+        input_layout_minor_to_major.back());
+    dim_numbers.set_input_feature_dimension(
+        input_layout_minor_to_major[input_layout_minor_to_major.size()-2] );
+
+    dim_numbers.clear_input_spatial_dimensions();
+    for(auto i = 2; i < input_layout_minor_to_major.size(); i++){
+        dim_numbers.add_input_spatial_dimensions(
+            input_layout_minor_to_major[input_layout_minor_to_major.size() - i - 1]);
+    }
+
+    auto weight_layout_minor_to_major = weight->shape().layout().minor_to_major();
+    dim_numbers.set_kernel_input_feature_dimension(
+        weight_layout_minor_to_major[weight_layout_minor_to_major.size()-2]
+    );
+    dim_numbers.set_kernel_output_feature_dimension(
+        weight_layout_minor_to_major.back()
+    );
+    dim_numbers.clear_kernel_spatial_dimensions();
+    for(auto i = 2; i < weight_layout_minor_to_major.size(); i++){
+        dim_numbers.add_kernel_spatial_dimensions(
+            weight_layout_minor_to_major[weight_layout_minor_to_major.size() - i - 1]
+        );
+    }
+    
+    auto new_convolution = HloInstruction::CreateConvolve(
+          oldConv->shape(), input, weight,
+          oldConv->feature_group_count(),
+          oldConv->batch_group_count(),
+          oldConv->window(),
+          dim_numbers, oldConv->precision_config());
+
+    oldConv->parent()->ReplaceWithNewInstruction(
+          oldConv, std::move(new_convolution));
+
+    return nullptr;
+}
+
+HloInstruction* InsertTranspose::insertTransposeforHlo(HloInstruction *hlo, std::vector<int64> &dim_index){
+    CHECK_EQ(hlo->shape().dimensions().size(), dim_index.size());
+    std::vector<int64> new_output_dimensions;
+    for(auto d : dim_index){
+        new_output_dimensions.push_back(hlo->shape().dimensions(d));
+    }
+
+    auto parent = hlo->parent();
+    Shape shape = ShapeUtil::MakeShape(hlo->shape().element_type(), new_output_dimensions);
+    return  parent->AddInstruction(HloInstruction::CreateTranspose(
+        shape, hlo, dim_index));
+
+    // size_t dim_size = dim_index.size();
+    // std::vector<int64_t> output_dims(dim_size, 1);
+    // std::vector<uint32_t> perm(dim_size, 1);
+
+    // auto input_tensor = GetEvaluatedTensorFor(hlo);
+
+    // /*check if the shape is {WHCN} , if not, a transpose would be inserted to covert the layout. */
+    // bool is_need_insert_transpose = false;
+    // for(int i = 0; i < dim_size; i++){
+    //     if(dim_index[i] == shape.layout().minor_to_major()[dim_size - i - 1]){
+    //         perm[dim_size - 1 - i] = dim_size - i - 1;
+    //     }else{
+    //         is_need_insert_transpose = true;
+    //         for(int j = 0; j < dim_size; j++){
+    //             if(dim_index[i] != shape.layout().minor_to_major()[j])
+    //                 continue;
+    //             perm[dim_size - 1 - i] = j;
+    //             break;
+    //         }
+    //     }
+    // }
+    // if(is_need_insert_transpose){
+    //     auto input_shape = input_tensor->GetShape();
+    //     std::vector<uint32_t> output_shape;
+    //     for(auto d : perm){
+    //         output_shape.push_back(input_shape[d]);
+    //     }
+    //     auto output_tensor = createTensorFromShape(
+    //         convertTfPrimitiveTypeToTim(hlo->shape().element_type()), output_shape,
+    //         tim::vx::TensorAttribute::OUTPUT);
+    //     auto transposeOp = graph_->CreateOperation<tim::vx::ops::Transpose>(perm);
+    //     transposeOp->BindInput(input_tensor).BindOutput(output_tensor);
+
+    //     return output_tensor;
+    // }
+    // return input_tensor;
+}
+
 }  // namespace vsiplugin
 }  // namespace xla
