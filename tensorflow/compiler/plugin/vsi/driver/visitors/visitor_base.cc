@@ -174,7 +174,7 @@ Status BaseVisitor::HandleTranspose(HloInstruction* transpose){
     TF_CHECK_OK(ShapeUtil::ValidateShape(in_shape));
     TF_CHECK_OK(ShapeUtil::ValidateShape(out_shape));
     CHECK(ShapeUtil::SameElementType(in_shape, out_shape));
-    CHECK_EQ(transpose->dimesions().size(), in_shape.rank());
+    CHECK_EQ(transpose->dimensions().size(), in_shape.rank());
     CHECK_EQ(in_shape.rank(), out_shape.rank());
 
     auto in_tensor = GetEvaluatedTensorFor(input);
