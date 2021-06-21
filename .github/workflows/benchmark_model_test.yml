@@ -27,9 +27,10 @@ jobs:
       - name: build_tim_vx
         run: |
           cd ${{github.workspace}}
-          wget https://codeload.github.com/VeriSilicon/TIM-VX/zip/refs/heads/main
-          unzip main 
           rm main
+          rm -rf TIM-VX-main
+          wget https://codeload.github.com/VeriSilicon/TIM-VX/zip/refs/heads/main
+          unzip main          
           cd TIM-VX-main && cmake -B ${{github.workspace}}/TIM-VX-main/build -DCMAKE_TOOLCHAIN_FILE=${{env.VOSP}}/cmake-toolchains/0x9f.cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DEXTERNAL_VIV_SDK=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/viv_drv_sdk
           make install -C ${{github.workspace}}/TIM-VX-main/build -j12
           cp -r ${{github.workspace}}/TIM-VX-main/build/install ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_ci_install
@@ -40,9 +41,12 @@ jobs:
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
-          cd ${{github.workspace}} 
+          cd ${{github.workspace}}
+          rm vx-delegate.v2.4.1
+          rm -rf tensorflow-vx-delegate.v2.4.1
           wget https://codeload.github.com/VeriSilicon/tensorflow/zip/refs/heads/vx-delegate.v2.4.1 
           unzip vx-delegate.v2.4.1
+          cd tensorflow-vx-delegate.v2.4.1
           cmake tensorflow/lite -DCMAKE_TOOLCHAIN_FILE=${{env.VOSP}}/cmake-toolchains/0x9f.cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTFLITE_ENABLE_VX=ON -DTFLITE_ENABLE_XNNPACK=OFF -DTIM_VX_INSTALL=${{github.workspace}}/TIM-VX-main/build/install -DEXTERNAL_VIV_SDK=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/viv_drv_sdk
           run: make -C ${{github.workspace}}/build benchmark_model -j8
           cp ${{github.workspace}}/build/benchmark_model ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/benchmark_model.ci
