@@ -36,6 +36,7 @@ jobs:
           cp -r ${{github.workspace}}/TIM-VX-main/build/install ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_ci_install
           rm ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_install 
           ln -s ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_ci_install ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_install
+          rm -rf ${{github.workspace}}/TIM-VX-main
           
       - name: build_vx_delegate
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
@@ -52,6 +53,7 @@ jobs:
           cp ${{github.workspace}}/build/benchmark_model ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/benchmark_model.ci
           rm -rf ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/benchmark_model 
           ln -s ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/benchmark_model.ci ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/benchmark_model
+          rm -rf ${{env.VOSP}}/tensorflow-vx-delegate.v2.4.1 
       - name: Test
         run: |
           cd ${{env.VOSP}}
