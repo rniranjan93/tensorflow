@@ -41,7 +41,7 @@ jobs:
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
-          cd ${{github.workspace}}
+          cd ${{env.VOSP}}
           test -f vx-delegate.v2.4.1 && rm vx-delegate.v2.4.1
           test -f tensorflow-vx-delegate.v2.4.1 && rm -rf tensorflow-vx-delegate.v2.4.1
           wget https://codeload.github.com/VeriSilicon/tensorflow/zip/refs/heads/vx-delegate.v2.4.1 
