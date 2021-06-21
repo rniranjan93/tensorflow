@@ -41,8 +41,8 @@ jobs:
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
           cd ${{github.workspace}} 
-          wget https://codeload.github.com/VeriSilicon/tensorflow/zip/refs/heads/main 
-          unzip main
+          wget https://codeload.github.com/VeriSilicon/tensorflow/zip/refs/heads/vx-delegate.v2.4.1 
+          unzip vx-delegate.v2.4.1
           cmake tensorflow/lite -DCMAKE_TOOLCHAIN_FILE=${{env.VOSP}}/cmake-toolchains/0x9f.cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTFLITE_ENABLE_VX=ON -DTFLITE_ENABLE_XNNPACK=OFF -DTIM_VX_INSTALL=${{github.workspace}}/TIM-VX-main/build/install -DEXTERNAL_VIV_SDK=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/viv_drv_sdk
           run: make -C ${{github.workspace}}/build benchmark_model -j8
           cp ${{github.workspace}}/build/benchmark_model ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/benchmark_model.ci
