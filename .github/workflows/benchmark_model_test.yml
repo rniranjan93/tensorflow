@@ -48,9 +48,9 @@ jobs:
           git reset --hard HEAD
           git fetch origin
           git checkout origin/vx-delegate.v2.4.1
-          cmake tensorflow/lite -DCMAKE_TOOLCHAIN_FILE=${{env.VOSP}}/cmake-toolchains/0x9f.cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTFLITE_ENABLE_VX=ON -DTFLITE_ENABLE_XNNPACK=OFF -DTIM_VX_INSTALL=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_ci_install -DEXTERNAL_VIV_SDK=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/viv_drv_sdk
-          run: make -C ${{github.workspace}}/build benchmark_model -j8
-          cp ${{github.workspace}}/build/benchmark_model ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/benchmark_model.ci
+          cmake tensorflow/lite -DCMAKE_TOOLCHAIN_FILE=${{env.VOSP}}/cmake-toolchains/0x9f.cmake -B ${{env.VOSP}}/tensorflow-ci/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTFLITE_ENABLE_VX=ON -DTFLITE_ENABLE_XNNPACK=OFF -DTIM_VX_INSTALL=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_ci_install -DEXTERNAL_VIV_SDK=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/viv_drv_sdk
+          run: make -C ${{env.VOSP}}/tensorflow-ci/build benchmark_model -j12
+          cp ${{env.VOSP}}/tensorflow-ci/build benchmark_model ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/benchmark_model.ci
           rm -rf ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/benchmark_model 
           ln -s ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/benchmark_model.ci ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/benchmark_model
       - name: Test
