@@ -27,8 +27,8 @@ jobs:
       - name: build_tim_vx
         run: |
           cd ${{github.workspace}}
-          rm main
-          rm -rf TIM-VX-main
+          test -f main && rm main
+          test -f TIM-VX-main && rm -rf TIM-VX-main
           wget https://codeload.github.com/VeriSilicon/TIM-VX/zip/refs/heads/main
           unzip main          
           cd TIM-VX-main && cmake -B ${{github.workspace}}/TIM-VX-main/build -DCMAKE_TOOLCHAIN_FILE=${{env.VOSP}}/cmake-toolchains/0x9f.cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DEXTERNAL_VIV_SDK=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/viv_drv_sdk
@@ -42,8 +42,8 @@ jobs:
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: |
           cd ${{github.workspace}}
-          rm vx-delegate.v2.4.1
-          rm -rf tensorflow-vx-delegate.v2.4.1
+          test -f vx-delegate.v2.4.1 && rm vx-delegate.v2.4.1
+          test -f tensorflow-vx-delegate.v2.4.1 && rm -rf tensorflow-vx-delegate.v2.4.1
           wget https://codeload.github.com/VeriSilicon/tensorflow/zip/refs/heads/vx-delegate.v2.4.1 
           unzip vx-delegate.v2.4.1
           cd tensorflow-vx-delegate.v2.4.1
