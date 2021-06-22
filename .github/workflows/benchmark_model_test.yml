@@ -51,7 +51,7 @@ jobs:
           git fetch origin
           git checkout origin/vx-delegate.v2.4.1
           cd ${{env.BUILD_WKSP}}
-          cmake tensorflow-ci/tensorflow/lite -DCMAKE_TOOLCHAIN_FILE=${{env.VOSP}}/cmake-toolchains/0x9f.cmake -B ${{env.BUILD_WKSP}}/tf-build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTFLITE_ENABLE_VX=ON -DTFLITE_ENABLE_XNNPACK=OFF -DTIM_VX_INSTALL=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_ci_install -DEXTERNAL_VIV_SDK=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/viv_drv_sdk
+          cmake tensorflow-ci/tensorflow/lite -DCMAKE_TOOLCHAIN_FILE=${{env.VOSP}}/cmake-toolchains/0x9f.cmake -B ${{env.BUILD_WKSP}}/tf-build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DTFLITE_ENABLE_VX=ON -DTFLITE_ENABLE_XNNPACK=OFF -DTIM_VX_INSTALL=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_install -DEXTERNAL_VIV_SDK=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/viv_drv_sdk
           make -C ${{env.BUILD_WKSP}}/tf-build clean
           make -C ${{env.BUILD_WKSP}}/tf-build benchmark_model -j12
           cp ${{env.BUILD_WKSP}}/tf-build/benchmark_model ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/benchmark_model.ci
