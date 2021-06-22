@@ -37,7 +37,7 @@ jobs:
           make clean -C ${{env.BUILD_WKSP}}/TIM-VX-Build
           make install -C ${{env.BUILD_WKSP}}/TIM-VX-Build -j12
           rm -rf ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_ci_install/*
-          cp -r ${{env.BUILD_WKSP}}/TIM-VX-Build/install ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_ci_install
+          cp -r ${{env.BUILD_WKSP}}/TIM-VX-Build/install/* ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_ci_install/*
           rm ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_install 
           ln -s ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_ci_install ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_install
           
