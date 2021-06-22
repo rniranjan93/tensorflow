@@ -33,7 +33,7 @@ jobs:
           git fetch origin
           git checkout origin/main
           cd ${{env.BUILD_WKSP}}
-          cmake -B ${{env.BUILD_WKSP}}/TIM-VX-Build -DCMAKE_TOOLCHAIN_FILE=${{env.VOSP}}/cmake-toolchains/0x9f.cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DEXTERNAL_VIV_SDK=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/viv_drv_sdk
+          cmake ${{env.BUILD_WKSP}}/TIM-VX -B ${{env.BUILD_WKSP}}/TIM-VX-Build -DCMAKE_TOOLCHAIN_FILE=${{env.VOSP}}/cmake-toolchains/0x9f.cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DEXTERNAL_VIV_SDK=${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/viv_drv_sdk
           make clean -C ${{env.BUILD_WKSP}}/TIM-VX-Build
           make install -C ${{env.BUILD_WKSP}}/TIM-VX-Build -j12
           rm -rf ${{env.TEST_HUB}}/test_suits/vx_delegate/PID_0X9F/tim_vx_ci_install/*
