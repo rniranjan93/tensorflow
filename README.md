@@ -1,65 +1,57 @@
-
 #include<bits/stdc++.h>
 using namespace std;
 int main()
 {
-	ios_base::sync_with_stdio(false);
-	cin.tie(NULL);
-	int t;
-	long long n, l, r,index,a;
-	cin >> t;
-	while (t--)
+	/*ios_base::sync_with_stdio(false);
+	cin.tie(NULL);*/
+	int n, a;
+	int count = 0;
+	int left = 0;
+	cin >> n;
+	cin >> a;
+	count += a / 3;
+	left = a % 3;
+	for (int i = 1; i < n; i++)
 	{
-		cin >> n >> l >> r;
-		a = n*(n-1)+1 - l + 1;
-		if (a == 1)
+		cin >> a;
+		if (a % 2)
 		{
-			cout << "1\n";
-			continue;
-		}
-		else
-		{
-			long long start = 1, end = n-1;
-			while (start <= end)
+			if (a == 1)
 			{
-				long long mid = (start + end) / 2;
-				if (a > mid * (mid + 1) + 1)
-				{
-					start = mid+1;
-				}
-				else
-				{
-					end = mid - 1;
-				}
-			}
-			index =start;
-		}
-		int i = n - index;
-		int j = i + 1 + ((index * (index + 1) + 1) - a) / 2;
-		while (l <= r)
-		{
-			if (i == n)
-			{
-				cout << "1 ";
-				break;
-			}
-			if (l % 2)
-			{
-				cout << i << ' ';
+				left++;
 			}
 			else
 			{
-				cout << j << ' ';
-				j++;
+				a -= 3;
+				count++;
+				if (2 * left < a)
+				{
+					a -= 2 * left;
+					count += left + a / 3;
+					left = a % 3;
+				}
+				else
+				{
+					count += a / 2;
+					left -= a / 2;
+				}
 			}
-			if (j > n)
-			{
-				i++;
-				j = i + 1;
-			}
-			l++;
 		}
-		cout << endl;
+		else
+		{
+			if (2 * left < a)
+			{
+				a -= 2 * left;
+				count += left + a / 3;
+				left = a % 3;
+			}
+			else
+			{
+				count += a / 2;
+				left -= a / 2;
+			}
+		}
 	}
+	cout << count;
 	return 0;
 }
