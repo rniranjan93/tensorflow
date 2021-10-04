@@ -4,15 +4,17 @@ int main()
 {
 	/*ios_base::sync_with_stdio(false);
 	cin.tie(NULL);*/
-	int n, a;
-	int count = 0;
-	int left = 0;
+	int n;
+	long long a;
+	long long count = 0;
+	long long left = 0;
 	cin >> n;
 	cin >> a;
 	count += a / 3;
 	left = a % 3;
 	for (int i = 1; i < n; i++)
 	{
+		//a = 1000000000;
 		cin >> a;
 		if (a % 2)
 		{
