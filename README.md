@@ -13,7 +13,7 @@ int main()
 	for (int i = 1; i <= n; i++)
 	{
 		cin >> arr;
-		dp[0][i] = max((long long)0,dp[0][i-1]);
+		dp[0][i] = max((long long)0,dp[0][i-1]+arr);
 		dp[1][i] = max((long long)0,max(dp[1][i - 1], dp[0][i-1])+x * arr);
 		dp[2][i] = max((long long)0, max(dp[2][i - 1], dp[1][i - 1]) + arr);
 		for (int j = 0; j < 3; j++)
