@@ -11,7 +11,8 @@ public:
 		return a.first > b.first;
 	}
 };
-priority_queue < pr > arr;
+set<pair<long long, int>>arr;
+long long values[M];
 priority_queue < pair < long long, pair<int, int>>, vector<pair<long long, pair<int, int>>>, comp<pair<long long, pair<int, int>>>>q;
 bool visited[M];
 vector<priority_queue <pr>> table(M);
@@ -29,18 +30,19 @@ int main()
 	ios_base::sync_with_stdio(false);
 	cin.tie(NULL);
 	long long sum = 0;
-	int n, m,x,y;
+	int n, m, x, y;
 	long long w;
 	cin >> n >> m;
 	for (int i = 1; i <= n; i++) {
 		cin >> w;
-		arr.push({ w,i });
+		values[i] = w;
+		arr.insert({ w,i });
 	}
 	pair<long long, pair<int, int>>p;
 	p.first = LLONG_MAX;
 	for (int i = 0; i < m; i++)
 	{
-		cin >> x >> y>>w;
+		cin >> x >> y >> w;
 		if (p.first > w)
 		{
 			p = { w,{x,y} };
@@ -54,11 +56,24 @@ int main()
 		return 0;
 	}
 	long long temp = p.first;
-	pair<long long, int> least = arr.top();
-	arr.pop();
-	if (least.first+arr.top().first > p.first)
+	auto it = arr.begin();
+	it++;
+	pair<long long, int> least = *arr.begin();
+	if (least.first + (*it).first > p.first)
 	{
 		sum += p.first;
+		if (values[p.second.first] > values[p.second.second])
+		{
+			least.first = values[p.second.second];
+			least.second = p.second.second;
+		}
+		else
+		{
+			least.first = values[p.second.first];
+			least.second = p.second.first;
+		}
+		arr.erase({ values[p.second.first] , p.second.first});
+		arr.erase({ values[p.second.second] , p.second.second});
 		visited[p.second.first] = true;
 		visited[p.second.second] = true;
 		pushh(p.second.first);
@@ -66,56 +81,56 @@ int main()
 	}
 	else
 	{
-		sum += least.first + arr.top().first;
+		arr.erase(arr.begin());
+		sum += least.first + (*arr.begin()).first;
 		visited[least.second] = true;
-		visited[arr.top().second] = true;
+		visited[(*arr.begin()).second] = true;
 		pushh(least.second);
-		pushh(arr.top().second);
+		pushh((*arr.begin()).second);
+		arr.erase(arr.begin());
 	}
-	arr.pop();
-	n -= 2;
 
 	while (!q.empty() && (visited[q.top().second.first] && visited[q.top().second.second]))
-	{
 		q.pop();
-	}
-	while (!arr.empty() && visited[arr.top().second])
-		arr.pop();
-	while (n && !arr.empty())
+	while (!arr.empty())
 	{
-		
-		if (!q.empty() && q.top().first < least.first + arr.top().first)
+		if (!q.empty() && q.top().first < least.first + (*arr.begin()).first)
 		{
 			sum += q.top().first;
 			pair<int, int>p = q.top().second;
 			if (visited[p.first])
 			{
+				if (least.first > values[p.second])
+					least = { values[p.second],p.second };
+				arr.erase({ values[p.second],p.second });
 				visited[p.second] = true;
+				q.pop();
 				pushh(p.second);
 			}
 			else
 			{
+				if (least.first > values[p.first])
+					least = { values[p.first],p.first };
+				arr.erase({ values[p.first],p.first });
 				visited[p.first] = true;
+				q.pop();
 				pushh(p.first);
 			}
-			q.pop();
 		}
 		else
 		{
-			sum += least.first + arr.top().first;
-			visited[arr.top().second] = true;
-			pushh(arr.top().second);
-			arr.pop();
+			sum += least.first + (*arr.begin()).first;
+			if (least.first > (*arr.begin()).first)
+				least = *(arr.begin());
+			visited[(*arr.begin()).second] = true;
+			pushh((*arr.begin()).second);
+			arr.erase(arr.begin());
 		}
 		while (!q.empty() && (visited[q.top().second.first] && visited[q.top().second.second]))
 		{
 			q.pop();
 		}
-		while (!arr.empty() && visited[arr.top().second])
-			arr.pop();
-		n--;
 	}
 	cout << sum;
-	
 	return 0;
 }
