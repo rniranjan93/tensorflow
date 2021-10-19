@@ -61,3 +61,70 @@ int main()
 	cout << sum + maxx;
 	return 0;
 }*/
+#include<bits/stdc++.h>
+using namespace std;
+#pragma warning(disable:4996)
+vector<int>v;
+class node
+{
+public:
+	node* arr[2];
+	node()
+	{
+		arr[1] = arr[0] = NULL;
+	}
+
+};
+void dfs(int prev,node * n,int l)
+{
+	if (l < 0)
+		return;
+	if (prev & (1 << l))
+	{
+		if (!n->arr[1])
+			n->arr[1] = new node();
+		dfs(prev, n->arr[1], l - 1);
+	}
+	else
+	{
+		if (!n->arr[0])
+			n->arr[0] = new node();
+		dfs(prev, n->arr[1], l - 1);
+	}
+}
+int main()
+{
+	ios_base::sync_with_stdio(false);
+	cin.tie(NULL);
+	int n;
+	cin >> n;
+	v = vector<int>(n);
+	sort(v.begin(), v.end(), greater<int>());
+	int max_length = 0;
+	int element = v[0];
+	while (element)
+	{
+		max_length++;
+		element = element >> 1;
+	}
+	int prev = -1;
+	node * head=new node();
+	for (int i = 0; i < n; i++)
+	{
+		if (prev != v[i])
+		{
+			prev = v[i];
+			dfs(prev, head,max_length);
+		}
+	}
+	queue<pair<node*,int>> q;
+	q.push({ head,0 });
+	int number = 0;
+	while (!q.empty())
+	{
+		pair<node*, int>p = q.front();
+		q.pop();
+
+	}
+	return 0;
+}
