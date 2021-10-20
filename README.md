@@ -1,66 +1,4 @@
 #include<bits/stdc++.h>
-using namespace std;/*
-#define MOD 1000000007
-#define M 200005
-pair<int, int> indexes[2002];
-int arr[2002][2002];
-int main()
-{
-	ios_base::sync_with_stdio(false);
-	cin.tie(NULL);
-	/*int n, k;
-	cin >> n >> k;
-	int sum = 0;
-	for (int i = 0; i < 2002; i++)
-		indexes[i] = { -1,-1 };
-	char c;
-	for (int i = 0; i < n; i++)
-	{
-		for (int j = 0; j < n; j++)
-		{
-			cin >> c;
-			if (c == 'B')
-			{
-				if (indexes[i].first == -1)
-				{
-					indexes[i].first = j;
-					indexes[i].second = j;
-				}
-				else
-					indexes[i].second = j;
-			}
-		}
-		if (indexes[i].first == -1)
-			sum++;
-	}
-	int maxx = 0;
-	for (int i = 0; i <= n - k; i++)
-	{
-		for (int j = 0; j < n; j++)
-		{
-			if (indexes[j].first >= i && indexes[j].second <= i + k - 1)
-				arr[j][i] = 1;
-		}
-	}
-	int temp;
-	for (int i = 0; i <= n - k; i++)
-	{
-		temp = 0;
-		for (int j = 0; j < k; j++)
-		{
-			temp += arr[j][i];
-		}
-		maxx = max(maxx, temp);
-		int prev = 0;
-		for (int j = k; j < n; j++)
-		{
-			temp += arr[j][i] - arr[j-k][i];
-			maxx = max(maxx, temp);
-		}
-	}
-	cout << sum + maxx;
-	return 0;
-}*/#include<bits/stdc++.h>
 using namespace std;
 #pragma warning(disable:4996)
 vector<int>v;
@@ -72,7 +10,7 @@ public:
 	{
 		arr[1] = arr[0] = NULL;
 	}
-	node * single()
+	node* single()
 	{
 		if (arr[0] != arr[1] && (arr[0] == NULL || arr[1] == NULL)) {
 			if (arr[0])
@@ -102,7 +40,7 @@ void dfs(int prev, node* n, int l)
 	{
 		if (!n->arr[0])
 			n->arr[0] = new node();
-		dfs(prev, n->arr[1], l - 1);
+		dfs(prev, n->arr[0], l - 1);
 	}
 }
 int main()
@@ -171,9 +109,9 @@ int main()
 				}
 			}
 		}
-		if (b==false && !qq.empty())
+		if (b == false && !qq.empty())
 		{
-			number = (number | (1<<max_length));
+			number = (number | (1 << max_length));
 		}
 		max_length--;
 		swap(q, qq);
