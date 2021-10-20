@@ -28,7 +28,7 @@ public:
 };
 void dfs(int prev, node* n, int l)
 {
-	if (l <= 0)
+	if (l < 0)
 		return;
 	if (prev & (1 << l))
 	{
