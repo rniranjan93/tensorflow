@@ -57,7 +57,7 @@ int ddown(int index)
 				l += k - arr[index] + 1;
 		}
 	if (arr[index] <= arr[index + 1])
-		l += arr[index + 1] - arr[index];
+		l += arr[index + 1] - arr[index]+1;
 	return l;
 }
 int main()
