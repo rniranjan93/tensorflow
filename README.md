@@ -1,121 +1,96 @@
 #include<bits/stdc++.h>
 using namespace std;
 #pragma warning(disable:4996)
-vector<int>v;
-class node
+const int m = INT_MAX / 2;
+vector<int> arr(5002, -m);
+vector<int> prev3(5002, m);
+vector<int> prev2(5002, m);
+vector<int> prev1(5002, m);
+vector<int> pres(5002, m);
+int n;
+int down(int index)
 {
-public:
-	node* arr[2];
-	node()
+	if (index == 1)
 	{
-		arr[1] = arr[0] = NULL;
-	}
-	node* single()
-	{
-		if (arr[0] != arr[1] && (arr[0] == NULL || arr[1] == NULL)) {
-			if (arr[0])
-				return arr[0];
-			return arr[1];
-		}
-		return NULL;
-	}
-	bool empty()
-	{
-		if (arr[1] == NULL && arr[0] == NULL)
-			return true;
-		return false;
-	}
-};
-void dfs(int prev, node* n, int l)
-{
-	if (l < 0)
-		return;
-	if (prev & (1 << l))
-	{
-		if (!n->arr[1])
-			n->arr[1] = new node();
-		dfs(prev, n->arr[1], l - 1);
+		if (arr[index] <= arr[index + 1])
+			return arr[index + 1] - arr[index] + 1;
+		return 0;
 	}
 	else
+		if (index == n)
+		{
+			if (arr[index] <= arr[index - 1])
+				return arr[index - 1] - arr[index] + 1;
+			return 0;
+		}
+	int l = 0;
+	if (arr[index] <= arr[index + 1])
+		l += arr[index + 1] - arr[index] + 1;
+	if (arr[index] <= arr[index - 1])
+		l += arr[index - 1] - arr[index] + 1;
+	return l;
+}
+int ddown(int index)
+{
+	int l = 0;
+	if (index == 1)
 	{
-		if (!n->arr[0])
-			n->arr[0] = new node();
-		dfs(prev, n->arr[0], l - 1);
+		if (arr[index] <= arr[index + 1])
+			return arr[index + 1] - arr[index] + 1;
+		return 0;
 	}
+	else
+		if (index == 2)
+		{
+			if (arr[index] <= arr[index - 1])
+				l += arr[index - 1] - arr[index]+1;
+			if (arr[index] <= arr[index + 1])
+				l += arr[index + 1] - arr[index]+1;
+			return l;
+		}
+		else
+		{
+			int k=arr[index-1];
+			if (arr[index - 2] <= arr[index - 1])
+				k -= arr[index - 1] - arr[index - 2] + 1;
+			if (arr[index] <= k)
+				l += k - arr[index] + 1;
+		}
+	if (arr[index] <= arr[index + 1])
+		l += arr[index + 1] - arr[index];
+	return l;
 }
 int main()
 {
 	ios_base::sync_with_stdio(false);
 	cin.tie(NULL);
-	int n;
 	cin >> n;
-	v = vector<int>(n);
-	for (int i = 0; i < n; i++)
-		cin >> v[i];
-	sort(v.begin(), v.end(), greater<int>());
-	int max_length = 0;
-	int element = v[0];
-	while (element)
+	for (int i = 1; i <= n; i++)
+		cin >> arr[i];
+	int length = 0;
+	for (int i = 1; i <= n; i++)
 	{
-		max_length++;
-		element = element >> 1;
-	}
-	if (max_length == 0)
-	{
-		cout << 0;
-		return 0;
-	}
-	int prev = -1;
-	node* head = new node;
-	max_length--;
-	for (int i = 0; i < n; i++)
-	{
-		if (prev != v[i])
+		length = (i - 1) / 2;
+		for (int j = length; j >= 0; j--)
 		{
-			prev = v[i];
-			dfs(prev, head, max_length);
-		}
-	}
-	queue<node*> q;
-	queue<node*>qq;
-	q.push(head);
-	int number = 0;
-	while (!q.empty()) {
-		bool b = false;
-		while (!q.empty())
-		{
-			node* p = q.front();
-			q.pop();
-			if (!p->empty()) {
-				if (b == false) {
-					if (p->single())
-					{
-						b = true;
-						while (!qq.empty())qq.pop();
-						qq.push(p->single());
-					}
-					else
-					{
-						qq.push(p->arr[0]);
-						qq.push(p->arr[1]);
-					}
-				}
-				else
-				{
-					if (p->single())
-					{
-						qq.push(p->single());
-					}
-				}
+			if (j == 0)
+			{
+				pres[j] = down(i);
 			}
+			else
+			pres[j] = min(prev3[j-1]+down(i),prev2[j-1]+ddown(i));			
 		}
-		if (b == false && !qq.empty())
+		for (int j = length; j >= 0; j--)
 		{
-			number = (number | (1 << max_length));
+			prev3[j] = min(prev3[j], prev2[j]);
+			prev2[j] = prev1[j];
+			prev1[j] = pres[j];
 		}
-		max_length--;
-		swap(q, qq);
 	}
-	cout << number;
+
+	for (int i = 0; i < (n+1) / 2; i++)
+	{
+		cout << min(min(prev3[i],prev2[i]), min(pres[i],prev1[i]))<<' ';
+	}
 	return 0;
 }
