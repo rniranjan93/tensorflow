@@ -1,45 +1,52 @@
 #include<bits/stdc++.h>
 using namespace std;
 #pragma warning(disable:4996)
-vector<int>v;
-vector<vector<long long>>vv(3003, vector<long long>(3003));
+vector<int>graph[100002];
+long long sum = 0;
+vector<int> cnt(100002);
+vector<int> score(100002);
+void dfs(int node, int parent)
+{
+	for (auto k:graph[node])
+	{
+		if (k == parent)
+			continue;
+		dfs(k, node);
+		cnt[node] += cnt[k];
+		score[node] += score[k] + cnt[k];
+	}
+	cnt[node]++;
+}
+void dfss(int node, int parent, long long s,int c)
+{
+	for (auto k : graph[node])
+	{
+		if (k == parent)
+			continue;
+		dfss(k, node,s+score[node]-score[k]+c-cnt[k]+1,cnt[node]-cnt[k]+c);
+	}
+	sum += (score[node] + s + c+cnt[node]-1)/2;
+}
 int main()
 {
 	ios_base::sync_with_stdio(false);
 	cin.tie(NULL);
 	int n;
-	long long a;
+	int a, b;
 	cin >> n;
-	int cnt;
-	v = vector<int>(n);
-	for (int i = 0; i < n; i++)
+	int k = -1;
+	for (int i = 1; i < n; i++)
 	{
-		cin >> a;
-		cnt = 0;
-		while (a)
-		{
-			if (a & 1)
-				cnt++;
-			a = a >> 1;
-		}
-		v[i] = cnt;
+		cin >> a >> b;
+		graph[a].push_back(b);
+		graph[b].push_back(a);
+		if (graph[a].size() == 1)
+			k = a;
+		if (graph[b].size() == 1)
+			k = b;
 	}
-	long long sum = 0;
-	for (int i = n-1; i >= 0; i--)
-	{
-		for (int j = 3002; j >= 0; j--)
-		{
-			if (vv[j][i + 1] == 0)
-				continue;
-			for (int k = j + v[i]; k >= max(v[i], j) - min(v[i], j); k -= 2)
-			{
-				if(k<=3002)
-					vv[k][i] = max(vv[k][i], vv[j][i + 1]);
-			}
-		}
-		vv[v[i]][i]++;
-		sum += vv[0][i];
-	}
-	cout << sum;
+	dfs(k,-1);
+	dfss(k,-1,0,0);
+	cout << (sum / 2);
 	return 0;
 }
