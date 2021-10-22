@@ -1,10 +1,10 @@
 #include<bits/stdc++.h>
 using namespace std;
 #pragma warning(disable:4996)
-vector<int>graph[100002];
+vector<int>graph[200002];
 long long sum = 0;
-vector<int> cnt(100002);
-vector<int> score(100002);
+vector<int> cnt(200002);
+vector<int> score(200002);
 void dfs(int node, int parent)
 {
 	for (auto k:graph[node])
