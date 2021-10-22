@@ -32,7 +32,7 @@ int main()
 			if (vv[j][i + 1] == 0)continue;
 			for (int k = j + v[i]; k >= 0 && k >= max(v[i], j) - min(v[i], j); k -= 2)
 			{
-				if(j<=60)
+				if(k<=60)
 				vv[k][i] = max(vv[k][i], vv[j][i + 1]);
 			}
 		}
