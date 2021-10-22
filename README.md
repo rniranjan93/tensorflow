@@ -2,7 +2,7 @@
 using namespace std;
 #pragma warning(disable:4996)
 vector<int>v;
-vector<vector<long long>>vv(62, vector<long long>(300003));
+vector<vector<long long>>vv(64, vector<long long>(300003));
 int main()
 {
 	ios_base::sync_with_stdio(false);
@@ -27,13 +27,14 @@ int main()
 	long long sum = 0;
 	for (int i = n-1; i >= 0; i--)
 	{
-		for (int j = 60; j >= 0; j--)
+		for (int j = 63; j >= 0; j--)
 		{
-			if (vv[j][i + 1] == 0)continue;
-			for (int k = j + v[i]; k >= 0 && k >= max(v[i], j) - min(v[i], j); k -= 2)
+			if (vv[j][i + 1] == 0)
+				continue;
+			for (int k = j + v[i]; k >= max(v[i], j) - min(v[i], j); k -= 2)
 			{
-				if(k<=60)
-				vv[k][i] = max(vv[k][i], vv[j][i + 1]);
+				if(k<=63)
+					vv[k][i] = max(vv[k][i], vv[j][i + 1]);
 			}
 		}
 		vv[v[i]][i]++;
