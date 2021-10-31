@@ -1,52 +1,37 @@
 #include<bits/stdc++.h>
 using namespace std;
 #pragma warning(disable:4996)
-vector<int>graph[200002];
-long long sum = 0;
-vector<int> cnt(200002);
-vector<int> score(200002);
-void dfs(int node, int parent)
-{
-	for (auto k:graph[node])
-	{
-		if (k == parent)
-			continue;
-		dfs(k, node);
-		cnt[node] += cnt[k];
-		score[node] += score[k] + cnt[k];
-	}
-	cnt[node]++;
-}
-void dfss(int node, int parent, long long s,int c)
-{
-	for (auto k : graph[node])
-	{
-		if (k == parent)
-			continue;
-		dfss(k, node,s+score[node]-score[k]+c-cnt[k]+1,cnt[node]-cnt[k]+c);
-	}
-	sum += (score[node] + s + c+cnt[node]-1)/2;
-}
+vector<int>v(200005);
 int main()
 {
 	ios_base::sync_with_stdio(false);
 	cin.tie(NULL);
+	int t;
 	int n;
-	int a, b;
-	cin >> n;
-	int k = -1;
-	for (int i = 1; i < n; i++)
+	cin >> t;
+	while (t--)
 	{
-		cin >> a >> b;
-		graph[a].push_back(b);
-		graph[b].push_back(a);
-		if (graph[a].size() == 1)
-			k = a;
-		if (graph[b].size() == 1)
-			k = b;
+		cin >> n;
+		for (int i = 0; i < n; i++)
+			cin >> v[i];
+		sort(v.begin(), v.begin() + n);
+		pair<int, int>p = { -1,-1 };
+		set<pair<int, int>>s;
+		for (int i = 0; i < n; i++)
+		{
+			if (p.second != v[i])
+			{
+				if (p.second != -1)
+				{
+					s.insert(p);
+				}
+				p.second = v[i];
+				p.first = 0;
+			}
+			p.second++;
+		}
+		s.insert(p);
+
 	}
-	dfs(k,-1);
-	dfss(k,-1,0,0);
-	cout << (sum / 2);
 	return 0;
 }
